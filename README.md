@@ -4,6 +4,8 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 
 **[Otwórz kalkulator](https://mikebronka.github.io/termo-przegroda/)**
 
+![Widok ogólny kalkulatora](docs/widok-ogolny.png)
+
 ## Dwa tryby
 
 - **Strop pod strychem:** pasy dolne wiązarów, strefa instalacyjna, ruszt CD (pusty lub wypełniony wełną), paroizolacja, płyty GK.
@@ -19,6 +21,24 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 - obciążenie pasa dolnego i straty ciepła.
 
 ## Widoki
+
+**Model 3D** z rozsuniętymi warstwami i prześwietloną wełną: pasy wiązarów, kanały rekuperacji, peszle, ruszt z wieszakami, folia i płyty. Fioletowa płaszczyzna to miejsce, w którym przegroda ma temperaturę punktu rosy.
+
+![Widok 3D przegrody](docs/widok-3d.png)
+
+**Przekrój w skali** z profilem temperatury i ciśnienia pary. Tutaj wariant z folią w połowie izolacji: folia ma 0,4 °C przy punkcie rosy 9,3 °C, więc pod nią pojawia się kondensacja (czerwony odcinek).
+
+![Przekrój z profilem temperatury i pary](docs/przekroj.png)
+
+**Tryb poddasza użytkowego:** połać pod kątem, krokwie, membrana MWK, wełna pod krokwiami, ruszt i płyta GK.
+
+![Poddasze użytkowe w 3D](docs/poddasze-3d.png)
+
+**Wersja na telefon:** najważniejsze wyniki na górze, pod nimi widok 3D i warstwy.
+
+<img src="docs/telefon.png" alt="Kalkulator na telefonie" width="320">
+
+Pozostałe funkcje:
 
 - przekrój w skali z profilami temperatury i ciśnienia pary,
 - model 3D (three.js) z płaszczyzną punktu rosy,
