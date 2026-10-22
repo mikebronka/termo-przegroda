@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Kalkulator przegrody: strop pod nieogrzewanym strychem lub skos poddasza. Warstwy w skali, widok 3D, współczynnik U, punkt rosy, metoda Glasera, kanały rekuperacji, eksport PDF.">
+<title>Kalkulator termiczny stropu</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+[hidden]{display:none!important}
+
+/* Układ: trzy kolumny jak deska kreślarska — warstwy i warunki | widok 3D + przekrój w skali | wyniki. Telefon: skrót wyników, widok, warstwy, szczegóły. */
+:root{
+  --bg:#eceeec; --panel:#fbfcfb; --sunk:#e3e7e4; --ink:#1a211f; --muted:#5a6561; --line:#d2d8d4; --line2:#b6c0bb;
+  --accent:#0e6a6b; --accent-ink:#ffffff; --accent-soft:#d3eae9;
+  --cold:#2c6cb0; --warm:#c24f2c; --dew:#7a4db0; --vapor:#3f7f5f;
+  --ok:#2b774a; --ok-bg:#dff0e5; --warn:#9a5f0c; --warn-bg:#f7ead0; --bad:#b0251c; --bad-bg:#f7dfdc;
+  --mat-ink:#1d1f1c;
+  --font-d:'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-m:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --panel:#1a211f; --sunk:#222b28; --ink:#e4ebe8; --muted:#97a49f; --line:#2d3834; --line2:#43514b;
+  --accent:#55b8b4; --accent-ink:#0b1715; --accent-soft:#1c3533;
+  --cold:#6ea8e6; --warm:#ee8d6a; --dew:#b892ea; --vapor:#7cc39d;
+  --ok:#6cc690; --ok-bg:#15301f; --warn:#e3ae58; --warn-bg:#33290f; --bad:#f2827a; --bad-bg:#3b1a17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --panel:#1a211f; --sunk:#222b28; --ink:#e4ebe8; --muted:#97a49f; --line:#2d3834; --line2:#43514b;
+  --accent:#55b8b4; --accent-ink:#0b1715; --accent-soft:#1c3533;
+  --cold:#6ea8e6; --warm:#ee8d6a; --dew:#b892ea; --vapor:#7cc39d;
+  --ok:#6cc690; --ok-bg:#15301f; --warn:#e3ae58; --warn-bg:#33290f; --bad:#f2827a; --bad-bg:#3b1a17; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-d);font-size:14px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+.num,.mono{font-family:var(--font-m);font-variant-numeric:tabular-nums}
+.app{max-width:1840px;margin:0 auto;display:grid;gap:14px;padding-block:14px 28px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  grid-template-columns:350px minmax(0,1fr) 350px;
+  grid-template-areas:"head head head" "left sum right" "left view right"}
+header.head{grid-area:head;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
+.brand span{color:var(--muted);font-size:13px}
+.vbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.vbar select,.vbar input{height:32px;border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:0 8px;min-width:0}
+.vbar input{width:200px}
+.btn{height:32px;padding:0 11px;border:1px solid var(--line2);background:var(--panel);border-radius:7px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:focus-visible,.ib:focus-visible,select:focus-visible,input:focus-visible,.nm:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.side{align-self:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;scrollbar-width:thin}
+.left{grid-area:left}.right{grid-area:right}.sum{grid-area:sum}.view{grid-area:view;display:grid;gap:14px;min-width:0}
+.sec{padding:14px 14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec h2 small{text-transform:none;letter-spacing:0;font-weight:400}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.fld{display:grid;gap:3px;min-width:0}
+.fld label{font-size:12px;color:var(--muted)}
+.fld input,.fld select{height:32px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);padding:0 8px;width:100%;min-width:0}
+.fld input[type=number]{font-family:var(--font-m)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+/* lista warstw */
+.side-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 2px;margin:2px 0 6px}
+.cards{display:grid;gap:6px}
+.card{border:1px solid var(--line);border-radius:9px;background:var(--panel);transition:border-color .12s}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.card.drop-before{box-shadow:0 -3px 0 var(--accent)}
+.card.drop-after{box-shadow:0 3px 0 var(--accent)}
+.card-h{display:grid;grid-template-columns:16px 10px minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:7px 8px}
+.card-h .grip,.card-h .sw{grid-row:1 / span 2}
+.row2{grid-column:3 / span 2;display:flex;gap:8px;align-items:center;min-width:0}
+.row2 small{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.grip{cursor:grab;color:var(--muted);font-size:13px;letter-spacing:-2px;user-select:none;text-align:center}
+.sw{width:10px;align-self:stretch;min-height:40px;border-radius:3px;border:1px solid rgba(0,0,0,.15)}
+.nm{border:0;background:none;text-align:left;cursor:pointer;padding:0;min-width:0}
+.nm b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tctl{display:flex;align-items:center;border:1px solid var(--line2);border-radius:7px;overflow:hidden;height:28px}
+.tctl button{width:24px;height:100%;border:0;background:var(--sunk);cursor:pointer}
+.tctl span{min-width:58px;text-align:center;font-family:var(--font-m);font-size:12.5px;padding:0 4px}
+.tfix{font-family:var(--font-m);font-size:12.5px;color:var(--muted);min-width:58px;text-align:right}
+.ops{display:flex;gap:2px}
+.ib{width:24px;height:24px;border:0;border-radius:6px;background:transparent;cursor:pointer;color:var(--muted);font-size:13px}
+.ib:hover{background:var(--sunk);color:var(--ink)}
+.card-b{padding:4px 10px 12px 34px;display:grid;gap:10px}
+.rangew{display:grid;grid-template-columns:1fr 64px;gap:8px;align-items:center}
+.rangew input[type=range]{width:100%;accent-color:var(--accent)}
+.items{display:grid;gap:6px}
+.item{border:1px dashed var(--line2);border-radius:8px;padding:8px;display:grid;gap:6px}
+.item-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:600}
+.item .g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.addrow{display:flex;flex-wrap:wrap;gap:6px}
+.palette{display:grid;gap:8px;margin-top:12px}
+.palette .pg{display:grid;gap:5px}
+.palette .pg span{font-size:11.5px;color:var(--muted)}
+.palette .pg div{display:flex;flex-wrap:wrap;gap:5px}
+.pal{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:4px 9px 4px 6px;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pal i{width:9px;height:14px;border-radius:2px;display:inline-block}
+.pal:hover{border-color:var(--accent)}
+.empty{border:1px dashed var(--line2);border-radius:9px;padding:18px;text-align:center;color:var(--muted)}
+.edge{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:8px;padding:2px 2px}
+.edge:before,.edge:after{content:"";flex:1;height:1px;background:var(--line)}
+/* skrót wyników */
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;position:relative;overflow:hidden}
+.tile:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line2);border-radius:0}
+.tile.ok:before{background:var(--ok)}.tile.warn:before{background:var(--warn)}.tile.bad:before{background:var(--bad)}
+.tile .k{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v{font-family:var(--font-m);font-size:21px;font-weight:500;line-height:1.25;white-space:nowrap}
+.tile .v small{font-size:12px;color:var(--muted);font-weight:400}
+.tile .s{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.ok .s{color:var(--ok)}.tile.warn .s{color:var(--warn)}.tile.bad .s{color:var(--bad)}
+/* widok 3D */
+.v3d{overflow:hidden}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 10px;font-size:12.5px;cursor:pointer;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.tog{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;user-select:none}
+.tog input{accent-color:var(--accent)}
+.expl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.expl input{width:110px;accent-color:var(--accent)}
+.stage{position:relative;height:clamp(340px,50vh,640px);background:var(--sunk)}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.lbls{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lb{position:absolute;transform:translate(8px,-50%);font-size:11.5px;background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;color:var(--ink)}
+.lb b{font-family:var(--font-m);font-weight:500}
+.lb.sel{border-color:var(--accent);color:var(--accent)}
+.cap{position:absolute;left:10px;bottom:8px;font-size:11.5px;color:var(--muted);pointer-events:none}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);padding:20px;text-align:center}
+/* przekrój */
+.secwrap{padding:12px 12px 8px}
+.sechead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;align-items:baseline;margin-bottom:6px}
+.sechead h3{font-size:15px;font-weight:600;margin:0}
+.sechead p{margin:0;font-size:12px;color:var(--muted)}
+#section{width:100%;overflow-x:auto}
+#section svg{display:block}
+#section .hdl{cursor:ns-resize}
+#section .lay{cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--muted);padding:2px 0 4px}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+/* wyniki */
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;font-size:13px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:right}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.big b{font-family:var(--font-m);font-size:32px;font-weight:500;letter-spacing:-.02em}
+.pill{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.msg{font-size:12.5px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:var(--sunk)}
+.msg.bad{background:var(--bad-bg);color:var(--bad)}.msg.warn{background:var(--warn-bg);color:var(--warn)}.msg.ok{background:var(--ok-bg);color:var(--ok)}
+.pipes{display:grid;gap:8px}
+.pipe{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.pipe .t{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:600;font-size:13px}
+.pipe ul{margin:6px 0 0;padding-left:16px;font-size:12.5px;color:var(--muted)}
+.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+.cmp th{font-weight:500;color:var(--muted);text-align:right;padding:4px 4px;border-bottom:1px solid var(--line)}
+.cmp th:first-child,.cmp td:first-child{text-align:left}
+.cmp td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-m);font-variant-numeric:tabular-nums}
+.cmp td:first-child{font-family:var(--font-d)}
+.cmp tr{cursor:pointer}
+.cmp tr.cur td{background:var(--accent-soft)}
+.cmpwrap{overflow-x:auto}
+.note{font-size:11.5px;color:var(--muted);line-height:1.5}
+details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-top:10px}
+.info{width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font:600 11px/1 var(--font-m);display:inline-grid;place-items:center;cursor:pointer;padding:0;flex:none;text-transform:none;letter-spacing:0;vertical-align:middle}
+.info:hover,.info.on{border-color:var(--accent);color:var(--accent)}
+.pop{position:absolute;z-index:40;width:min(340px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+.pop b{display:block;margin-bottom:4px;font-size:13.5px}
+.h2l{display:inline-flex;gap:6px;align-items:center}
+.fld output{height:32px;display:flex;align-items:center;padding:0 8px;border-radius:7px;background:var(--sunk);font-family:var(--font-m);font-variant-numeric:tabular-nums}
+.lb.dew{border-color:var(--dew);color:var(--dew)}
+.mode-roof .only-flat,.mode-flat .only-roof{display:none!important}
+.seg.mode button{padding:5px 11px}
+.headl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:30}
+@media (max-width:1500px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1240px){
+  .app{grid-template-columns:330px minmax(0,1fr);grid-template-areas:"head head" "left sum" "left view" "right right"}
+  .right{position:static;max-height:none;overflow:visible}
+  .right .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .right .sec{border-bottom:0;border-right:1px solid var(--line)}
+  .tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "sum" "view" "left" "right"}
+  .side{position:static;max-height:none;overflow:visible}
+  .vbar{margin-left:0;width:100%}
+  .vbar input{flex:1;width:auto}
+  .stage{height:330px}
+  .right .sec{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media (max-width:520px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tile .v{font-size:18px}
+  .grid2{grid-template-columns:1fr 1fr}
+  .card-b{padding-left:10px}
+  .expl input{width:80px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="app mode-flat" id="app">
+  <header class="head">
+    <div class="headl"><div class="brand"><h1>Kalkulator termiczny stropu</h1><span id="brandsub">przegroda: piętro / nieogrzewany strych</span></div>
+    <div class="seg mode" id="mode" role="group" aria-label="Rodzaj przegrody"><button data-mode="flat" class="on">Strop pod strychem</button><button data-mode="roof">Poddasze użytkowe</button></div></div>
+    <div class="vbar">
+      <select id="vsel" aria-label="Wariant"></select>
+      <input id="vname" aria-label="Nazwa wariantu">
+      <button class="btn" id="vdup">Duplikuj</button>
+      <button class="btn" id="vdel">Usuń</button>
+      <button class="btn" id="copy">Kopiuj zestawienie</button>
+      <button class="btn pri" id="pdf" hidden>Eksport PDF</button>
+    </div>
+  </header>
+
+  <aside class="left side panel" aria-label="Warunki i warstwy">
+    <section class="sec">
+      <h2>Warunki obliczeniowe</h2>
+      <div class="grid2">
+        <div class="fld"><label for="c_ti">Pokój θi [°C]</label><input id="c_ti" type="number" step="0.5" data-c="ti"></div>
+        <div class="fld"><label for="c_rhi">Wilgotność pokoju [%]</label><input id="c_rhi" type="number" step="1" min="10" max="90" data-c="rhi"></div>
+        <div class="fld"><label for="c_te"><span class="only-flat">Strych</span><span class="only-roof">Na zewnątrz</span> θe [°C]</label><input id="c_te" type="number" step="0.5" data-c="te"></div>
+        <div class="fld"><label for="c_rhe">Wilgotność <span class="only-flat">strychu</span><span class="only-roof">na zewnątrz</span> [%]</label><input id="c_rhe" type="number" step="1" min="10" max="100" data-c="rhe"></div>
+      </div>
+      <div class="chips" aria-label="Temperatura strychu">
+        <button class="chip" data-te="-20">−20 °C</button>
+        <button class="chip" data-te="-16">−16 °C mróz projektowy</button>
+        <button class="chip" data-te="-5">−5 °C</button>
+        <button class="chip" data-te="0">0 °C typowa zima</button>
+      </div>
+      <p class="hint only-flat">Strych jest wentylowany, więc zimą ma praktycznie temperaturę zewnętrzną.</p>
+      <p class="hint only-roof">Pokrycie i łaty nad szczeliną wentylacyjną nie liczą się do izolacyjności: przekrój zaczyna się od membrany.</p>
+    </section>
+    <section class="sec">
+      <h2><span class="h2l"><span class="only-flat">Wysokość pomieszczenia</span><span class="only-roof">Skos i ścianka kolankowa</span> <button class="info only-flat" data-info="height" aria-label="Wyjaśnienie">i</button><button class="info only-roof" data-info="roof" aria-label="Wyjaśnienie">i</button></span></h2>
+      <div class="grid2">
+        <div class="fld only-flat"><label for="c_hScreed">Wylewka → spód pasa [cm]</label><input id="c_hScreed" type="number" step="0.5" data-c="hScreed"></div>
+        <div class="fld only-roof"><label for="c_alpha">Kąt dachu [°]</label><input id="c_alpha" type="number" step="1" min="10" max="70" data-c="alpha"></div>
+        <div class="fld only-roof"><label for="c_hKnee">Wylewka → spód krokwi przy ściance [cm]</label><input id="c_hKnee" type="number" step="1" data-c="hKnee"></div>
+        <div class="fld"><label for="c_floorT">Podłoga docelowa [cm]</label><input id="c_floorT" type="number" step="0.1" min="0" data-c="floorT"></div>
+        <div class="fld only-flat"><label for="c_hMin">Min. wysokość pokoju [cm]</label><input id="c_hMin" type="number" step="1" data-c="hMin"></div>
+        <div class="fld only-flat"><label>Posadzka gotowa → pas</label><output id="h0out"></output></div>
+        <div class="fld only-roof"><label>Skos przy ściance (gotowy)</label><output id="hkout"></output></div>
+      </div>
+      <p class="hint only-flat">Podłoga docelowa to klej + płytka (albo podkład + panel). Pokój w świetle: <b id="clearout" class="num"></b></p>
+      <p class="hint only-roof">Od ścianki do wysokości 1,4 m: <b id="d140out" class="num"></b>, do 2,2 m: <b id="d220out" class="num"></b></p>
+    </section>
+    <section class="sec">
+      <h2>Warstwy <small id="tot"></small></h2>
+      <div class="edge"><span class="only-flat">strych</span><span class="only-roof">na zewnątrz</span></div>
+      <div class="cards" id="cards"></div>
+      <div class="edge">pokój</div>
+      <div class="palette" id="palette"></div>
+      <p class="hint" id="palhint">Nowa warstwa trafia pod zaznaczoną.</p>
+    </section>
+  </aside>
+
+  <section class="sum" aria-label="Skrót wyników"><div class="tiles" id="tiles"></div></section>
+
+  <main class="view">
+    <div class="panel v3d">
+      <div class="toolbar">
+        <div class="seg" id="cams" role="group" aria-label="Widok">
+          <button data-cam="iso" class="on">Izometria</button>
+          <button data-cam="sec">Przekrój</button>
+          <button data-cam="top">Od strychu</button>
+          <button data-cam="bot">Od pokoju</button>
+        </div>
+        <label class="expl" for="explode">Rozsuń <input id="explode" type="range" min="0" max="20" step="1" value="0"></label>
+        <label class="tog"><input type="checkbox" id="xray"> Prześwietl wełnę</label>
+        <label class="tog"><input type="checkbox" id="labels" checked> Opisy</label>
+        <span class="tog"><label class="tog" for="dewp"><input type="checkbox" id="dewp" checked> Płaszczyzna rosy</label><button class="info" data-info="dewplane" aria-label="Wyjaśnienie">i</button></span>
+      </div>
+      <div class="stage" id="stage">
+        <div class="lbls" id="lbls"></div>
+        <div class="cap" id="cap">Wycinek 240 × 120 cm · przeciągnij, aby obrócić · kółko / dwa palce: zoom · Shift: przesuń</div>
+      </div>
+    </div>
+    <div class="panel secwrap">
+      <div class="sechead">
+        <h3 class="h2l">Przekrój w skali z profilem temperatury i pary <button class="info" data-info="przekroj" aria-label="Wyjaśnienie">i</button></h3>
+        <p><span class="only-roof">Przekrój prostopadły do połaci. </span>Przeciągnij górną krawędź warstwy, aby zmienić grubość co 1 cm.</p>
+      </div>
+      <div class="legend">
+        <span><i style="border-color:var(--warm)"></i>temperatura <button class="info" data-info="temp" aria-label="Wyjaśnienie">i</button></span>
+        <span><i style="border-color:var(--dew);border-top-style:dashed"></i>punkt rosy <button class="info" data-info="dew" aria-label="Wyjaśnienie">i</button></span>
+        <span><i style="border-color:var(--muted);border-top-style:dotted"></i>ciśnienie nasycenia <button class="info" data-info="psat" aria-label="Wyjaśnienie">i</button></span>
+        <span><i style="border-color:var(--vapor)"></i>ciśnienie pary <button class="info" data-info="p" aria-label="Wyjaśnienie">i</button></span>
+        <span><i style="border-color:var(--bad);border-top-width:5px"></i>kondensacja <button class="info" data-info="kond" aria-label="Wyjaśnienie">i</button></span>
+      </div>
+      <div id="section"></div>
+    </div>
+  </main>
+
+  <aside class="right side panel" aria-label="Wyniki"><div class="rgrid" id="details"></div></aside>
+</div>
+
+<script id="calc">
+const MAT={
+  wool:{kind:'ins',label:'Wełna mineralna – maty',short:'Wełna',lambda:0.035,mu:1,rho:20,t:15,min:1,max:60,color:'#e9c45b',grp:'Izolacja',pattern:true,items:true},
+  blown:{kind:'ins',label:'Wełna wdmuchiwana',short:'Wełna wdmuchiwana',lambda:0.040,mu:1,rho:30,t:20,min:1,max:60,color:'#dbbd7a',grp:'Izolacja',items:true},
+  chord:{kind:'framed',label:'Pasy dolne wiązarów + wypełnienie',short:'Pasy wiązarów',t:15,min:8,max:30,woodW:4.5,spacing:95,fill:'wool',dir:'along',color:'#c39563',grp:'Konstrukcja',items:true,modes:['flat']},
+  rafter:{kind:'framed',label:'Krokwie + wypełnienie',short:'Krokwie',t:20,min:10,max:30,woodW:8,spacing:90,fill:'wool',dir:'cross',color:'#bf8f5c',grp:'Konstrukcja',items:true,modes:['roof']},
+  joist:{kind:'framed',label:'Legary na pasach + wypełnienie',short:'Legary',t:20,min:5,max:40,woodW:5,spacing:60,fill:'wool',dir:'cross',ownWeight:true,color:'#b48455',grp:'Konstrukcja',items:true,modes:['flat']},
+  air:{kind:'air',label:'Pustka powietrzna',short:'Pustka',t:5,min:1,max:40,color:'#cdd7d3',grp:'Konstrukcja',items:true},
+  grid1:{kind:'grid',label:'Ruszt pojedynczy CD60',short:'Ruszt CD60',t:2.7,fixed:true,R:0.15,kg:2.6,color:'#9aa4a9',grp:'Konstrukcja'},
+  grid2:{kind:'grid',label:'Ruszt podwójny krzyżowy CD60',short:'Ruszt 2×CD60',t:5.4,fixed:true,R:0.16,kg:4.2,color:'#8b969b',grp:'Konstrukcja'},
+  pe:{kind:'mem',label:'Paroizolacja – folia PE 0,2 mm',short:'Folia PE',t:0.02,fixed:true,sd:75,kg:0.19,color:'#d2452c',grp:'Szczelność'},
+  vario:{kind:'mem',label:'Paroizolacja – membrana o zmiennym sd',short:'Membrana Vario',t:0.03,fixed:true,sd:20,kg:0.1,color:'#c4572f',grp:'Szczelność'},
+  wind:{kind:'mem',label:'Membrana wiatroizolacyjna / MWK',short:'Membrana MWK',t:0.05,fixed:true,sd:0.02,kg:0.14,color:'#5f8fb0',grp:'Szczelność'},
+  gk:{kind:'board',label:'Płyta gipsowo-kartonowa',short:'Płyta GK',boards:[1.25,1.5,1.8],t:1.25,lambda:0.25,mu:10,rho:680,color:'#ebe9e2',grp:'Okładziny'},
+  osb:{kind:'board',label:'Płyta OSB',short:'OSB',boards:[1.2,1.5,1.8,2.2,2.5],t:2.2,lambda:0.13,mu:200,rho:600,color:'#d6b276',grp:'Okładziny'},
+  planks:{kind:'board',label:'Deski z przerwami (kładka)',short:'Deski',boards:[2.5,3.2],t:2.5,lambda:0.13,mu:5,rho:450,color:'#c99f6a',grp:'Okładziny',gaps:true},
+};
+const FILL={wool:{label:'wełna – maty',lambda:0.035,mu:1,rho:20},blown:{label:'wełna wdmuchiwana',lambda:0.040,mu:1,rho:30},air:{label:'pustka (powietrze)',lambda:null,mu:1,rho:0}};
+const ITEM={
+  wywiew:{label:'Kanał wywiewny',d:75,color:'#f1ebdd',duct:'exhaust'},
+  nawiew:{label:'Kanał nawiewny',d:75,color:'#f1ebdd',duct:'supply'},
+  zimny:{label:'Kanał czerpni / wyrzutni',d:160,color:'#a7c4da',duct:'cold'},
+  peszel:{label:'Peszel z przewodami',d:20,color:'#2b2f30',duct:null},
+  kabel:{label:'Przewód',d:10,color:'#1d2022',duct:null},
+};
+const LAMBDA_WOOD=0.13, RHO_WOOD=450;
+const LVL={ok:0,warn:1,bad:2};
+const worst=(...a)=>a.reduce((m,x)=>LVL[x]>LVL[m]?x:m,'ok');
+
+function rAir(tcm){
+  const mm=tcm*10, T=[[0,0],[5,0.11],[7,0.13],[10,0.15],[15,0.16],[10000,0.16]];
+  for(let i=1;i<T.length;i++){if(mm<=T[i][0]){const [a,ra]=T[i-1],[b,rb]=T[i];return ra+(rb-ra)*(mm-a)/(b-a);}}
+  return 0.16;
+}
+function psat(t){return t>=0?610.5*Math.exp(17.269*t/(237.3+t)):610.5*Math.exp(21.875*t/(265.5+t));}
+function dewPoint(p){const x=Math.log(Math.max(p,1)/610.5);return p>=610.5?237.3*x/(17.269-x):265.5*x/(21.875-x);}
+
+function layerProps(L){
+  const M=MAT[L.type], d=L.t/100; let R=0,sd=0,kg=0,ins=0;
+  if(M.kind==='ins'){const lam=L.lambda||M.lambda;R=d/lam;sd=M.mu*d;kg=M.rho*d;ins=L.t;}
+  else if(M.kind==='framed'){
+    const f=Math.min(0.9,Math.max(0,L.woodW/L.spacing)), F=FILL[L.fill]||FILL.wool;
+    const lamF=L.fill==='air'?d/rAir(L.t):(L.lambda||F.lambda);
+    const lam=f*LAMBDA_WOOD+(1-f)*lamF; R=d/lam; sd=F.mu*d;
+    kg=F.rho*d*(1-f)+(M.ownWeight?RHO_WOOD*d*f:0); ins=L.fill==='air'?0:L.t;
+  }
+  else if(M.kind==='air'){R=rAir(L.t);sd=d;}
+  else if(M.kind==='grid'){
+    if(L.fill==='wool'){const lam=L.lambda||0.035;const lv=L.type==='grid2'?[0.06,0.12]:[0.12];const h=d/lv.length;
+      R=lv.reduce((a,f)=>a+1/((1-f)*lam/h+f/rAir(h*100)),0);sd=d;kg=M.kg+20*d*0.9;ins=L.t;}
+    else{R=M.R;sd=0.01;kg=M.kg;}}
+  else if(M.kind==='mem'){R=0;sd=+L.sd||M.sd;kg=M.kg;}
+  else if(M.kind==='board'){R=d/M.lambda;sd=M.mu*d;kg=M.rho*d*(M.gaps?0.85:1);}
+  return {R,sd,kg,ins};
+}
+
+function compute(layers,C,mode='flat'){
+  const bot=[...layers].reverse(); const rows=[]; let y=0,Rc=C.rsi,sdc=0;
+  for(const L of bot){const p=layerProps(L);rows.push({L,p,y0:y,y1:y+L.t,R0:Rc,R1:Rc+p.R,sd0:sdc,sd1:sdc+p.sd});y+=L.t;Rc+=p.R;sdc+=p.sd;}
+  const total=y, RT=Rc+C.rse, dT=C.ti-C.te, sdT=Math.max(sdc,1e-6);
+  const T=R=>C.ti-dT*R/RT;
+  const Rat=yy=>{if(yy<=0)return C.rsi;for(const r of rows){if(yy<=r.y1+1e-9){const f=r.y1>r.y0?(yy-r.y0)/(r.y1-r.y0):1;return r.R0+(r.R1-r.R0)*f;}}return RT-C.rse;};
+  // korekta na szczeliny w izolacji (PN-EN ISO 6946 zał. F)
+  const isMat=r=>r.L.type==='wool'||((MAT[r.L.type].kind==='framed'||MAT[r.L.type].kind==='grid')&&r.L.fill==='wool');
+  let dUg=0; const gaps=[];
+  for(let i=0;i<rows.length;){
+    if(!isMat(rows[i])){i++;continue;}
+    let j=i; while(j+1<rows.length&&isMat(rows[j+1]))j++;
+    const grp=rows.slice(i,j+1); const Rg=grp.reduce((s,r)=>s+r.p.R,0);
+    const mixed=grp.some(r=>MAT[r.L.type].kind==='framed')&&grp.some(r=>MAT[r.L.type].kind!=='framed');
+    const stag=grp.length>1&&(mixed||grp.some(r=>r.L.type==='wool'&&r.L.pattern&&r.L.pattern!=='prosto'));
+    const lvl=stag?0:1; const du=lvl?0.01*(Rg/RT)**2:0; dUg+=du;
+    gaps.push({names:grp.map(r=>MAT[r.L.type].short),lvl,du}); i=j+1;
+  }
+  const U0=1/RT, U=U0+dUg;
+  const pi=C.rhi/100*psat(C.ti), pe=C.rhe/100*psat(C.te);
+  const dewIn=dewPoint(pi);
+  let yDew=null;{const f=yy=>T(Rat(yy))-dewIn;if(f(0)<=0)yDew=0;else if(f(total)<0){let a=0,b=total;for(let k=0;k<50;k++){const m=(a+b)/2;if(f(m)>0)a=m;else b=m;}yDew=(a+b)/2;}}
+  // paroizolacja = warstwa o największym sd (min. 2 m)
+  let bar=null; for(const r of rows){if(r.p.sd>=2&&(!bar||r.p.sd>bar.p.sd))bar=r;}
+  const barrier=bar?{lid:bar.L.id,y:bar.y0,theta:T(bar.R0),ratio:(bar.R0-C.rsi)/(RT-C.rsi-C.rse),sd:bar.p.sd,margin:T(bar.R0)-dewIn}:null;
+  if(barrier)barrier.status=barrier.margin>=2?'ok':barrier.margin>=0?'warn':'bad';
+  // Glaser (warunki chwilowe)
+  const pAt=sd=>pi-(pi-pe)*sd/sdT; const samples=[]; let maxEx=-1e9, exAt=null;
+  for(const r of rows){const n=r.L.t>3?10:3;for(let k=0;k<=n;k++){const f=k/n;const sd=r.sd0+(r.sd1-r.sd0)*f, R=r.R0+(r.R1-r.R0)*f, yy=r.y0+(r.y1-r.y0)*f;const th=T(R), ps=psat(th), p=pAt(sd);samples.push({y:yy,th,ps,p,sd});if(p-ps>maxEx){maxEx=p-ps;exAt={y:yy,row:r,th};}}}
+  let cond=null;
+  if(maxEx>1){
+    let best=null;
+    for(const r of rows){for(const sdc2 of [r.sd0,r.sd1]){if(sdc2<=1e-6||sdc2>=sdT-1e-6)continue;const R=sdc2===r.sd0?r.R0:r.R1;const pc=psat(T(R));const gc=2e-10*((pi-pc)/sdc2-(pc-pe)/(sdT-sdc2));if(gc>0&&(!best||gc>best.gc))best={gc,y:sdc2===r.sd0?r.y0:r.y1,th:T(R)};}}
+    cond={y:exAt.y,lid:exAt.row.L.id,layer:MAT[exAt.row.L.type].short,gday:best?best.gc*86400*1000:null,yPlane:best?best.y:exAt.y,th:best?best.th:exAt.th};
+  }
+  const thetaSi=T(C.rsi), fRsi=1-C.rsi/RT;
+  // instalacje
+  const dewEx=dewPoint(C.rhEx/100*psat(C.ti));
+  const pipes=[];
+  for(const r of rows){for(const it of (r.L.items||[])){
+    const K=ITEM[it.kind]; const rad=it.d/20, yc=r.y0+it.h, top=yc+rad, bo=yc-rad;
+    const tTop=T(Rat(Math.min(top,total))), tC=T(Rat(Math.max(0,Math.min(yc,total))));
+    let insAbove=0; for(const r2 of rows){if(r2.p.ins>0){insAbove+=Math.max(0,r2.y1-Math.max(r2.y0,top));}}
+    const RAbove=(RT-C.rse)-Rat(Math.min(top,total));
+    const crosses=!!barrier&&bo<barrier.y&&top>barrier.y; const out=bo<r.y0-0.05||top>r.y1+0.05;
+    const warmSide=!barrier||top<=barrier.y+1e-6;
+    let lvl='ok'; const msgs=[];
+    if(crosses){lvl='bad';msgs.push('Przecina paroizolację.');}
+    if(out){lvl=worst(lvl,'warn');msgs.push('Wystaje poza swoją warstwę.');}
+    if(K.duct==='exhaust'){
+      if(tTop>=dewEx)msgs.push(`Otoczenie kanału ${fmt(tTop,1)} °C, powyżej punktu rosy wywiewu (${fmt(dewEx,1)} °C), także przy postoju rekuperatora.`);
+      else if(tTop>=0){lvl=worst(lvl,'warn');msgs.push(`Przy postoju rekuperatora powietrze w kanale ostygnie do ok. ${fmt(tTop,1)} °C, poniżej punktu rosy wywiewu (${fmt(dewEx,1)} °C). Przy pracy ciągłej ścianka kanału jest ciepła.`);}
+      else {lvl='bad';msgs.push(`Kanał leży w strefie ujemnej temperatury (${fmt(tTop,1)} °C): ryzyko skraplania i szronu w kanale.`);}
+    } else if(K.duct==='supply'){
+      if(tTop<C.tSupply-10){lvl=worst(lvl,'warn');msgs.push(`Otoczenie ${fmt(tTop,1)} °C: nawiew wyraźnie traci ciepło po drodze.`);}
+      else msgs.push(`Otoczenie ${fmt(tTop,1)} °C, nawiew ${fmt(C.tSupply,0)} °C: bez ryzyka kondensacji.`);
+    } else if(K.duct==='cold'){
+      if(warmSide){lvl=worst(lvl,'warn');msgs.push('Zimny kanał po ciepłej stronie paroizolacji: potrzebna otulina paroszczelna (kauczuk) na całej długości.');}
+      else msgs.push('Kanał w strefie zimnej. Otulina paroszczelna nadal zalecana.');
+    } else {
+      msgs.push(warmSide?'Po ciepłej stronie paroizolacji: dostęp bez przebijania folii.':'Nad paroizolacją: każde wyjście w dół przebije folię, wymaga przepustu.');
+    }
+    if(K.duct==='exhaust'&&insAbove<20)msgs.push(`Nad kanałem tylko ${fmt(insAbove,0)} cm izolacji (zalecane min. ok. 20 cm).`);
+    pipes.push({it,K,layer:MAT[r.L.type].short,lid:r.L.id,yc,top,bo,tTop,tC,insAbove,RAbove,crosses,out,warmSide,lvl,msgs});
+  }}
+  // wysokość pokoju
+  const ch=rows.filter(r=>r.L.type===(mode==='roof'?'rafter':'chord')); const anchorRow=ch.length?ch[0]:null;
+  const yAnchor=anchorRow?anchorRow.y0:total;
+  const h0=C.hScreed-C.floorT;
+  const clear=h0-yAnchor;
+  let roof=null;if(mode==='roof'){const a=Math.max(5,Math.min(80,C.alpha||40))*Math.PI/180;const hk=C.hKnee-C.floorT-yAnchor/Math.cos(a);roof={hk,dz:yAnchor/Math.cos(a),dx:yAnchor/Math.sin(a),d140:Math.max(0,140-hk)/Math.tan(a),d220:Math.max(0,220-hk)/Math.tan(a)};}
+  // wieszaki przez folię
+  let hangers=null;
+  const gr=rows.find(r=>MAT[r.L.type].kind==='grid');
+  if(gr&&anchorRow&&anchorRow.y0>=gr.y1){
+    const memBetween=rows.some(r=>MAT[r.L.type].kind==='mem'&&r.p.sd>=2&&r.y0>=gr.y1-1e-6&&r.y0<=anchorRow.y0+1e-6);
+    const perM2=1/((anchorRow.L.spacing/100)*(gr.L.type==='grid2'?1.0:0.5));
+    hangers={perM2,pierce:memBetween,count:perM2*C.area};
+  }
+  const kg=rows.reduce((s,r)=>s+r.p.kg,0);
+  const wool=rows.reduce((s,r)=>s+r.p.ins,0);
+  const q=U*dT, P=q*C.area, kWh=U*C.area*C.hdd*24/1000;
+  const status={
+    U:U<=0.15+1e-9?'ok':'bad',
+    bar:barrier?barrier.status:'bad',
+    cond:cond?'bad':'ok',
+    pipes:pipes.length?worst(...pipes.map(p=>p.lvl)):'ok',
+    h:mode==='roof'||clear>=C.hMin?'ok':'warn',
+    load:mode==='roof'||kg<=C.loadMax?'ok':'bad',
+  };
+  return {mode,roof,h0,yDew,rows,total,RT,U0,U,dUg,gaps,T,Rat,pi,pe,dewIn,dewEx,barrier,samples,cond,thetaSi,fRsi,pipes,yAnchor,anchorRow,clear,hangers,kg,wool,q,P,kWh,status,sdT};
+}
+function fmt(x,d=1){if(x==null||!isFinite(x))return '–';return x.toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d}).replace('-','−');}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+/* ---------- stan ---------- */
+const KEY='termo-przegroda.v1',OLD_KEY=null;
+let uidN=Date.now()%100000; const uid=()=>'x'+(uidN++).toString(36);
+const DEF_C={ti:20,rhi:50,te:-16,rhe:85,rsi:0.10,rse:0.10,rhEx:60,tSupply:18,hScreed:270,floorT:1.5,hMin:250,alpha:40,hKnee:120,area:80,hdd:3600,loadMax:50};
+function L(type,o={}){const M=MAT[type];const l={id:uid(),type,t:M.t,items:[]};
+  if(M.pattern)l.pattern='prosto';
+  if(M.kind==='framed'){l.woodW=M.woodW;l.spacing=M.spacing;l.fill=M.fill;l.dir=M.dir;}
+  if(M.kind==='grid')l.fill='air';
+  if(M.kind==='mem')l.sd=M.sd;
+  Object.assign(l,o);(l.items||[]).forEach(i=>i.id=i.id||uid());return l;}
+function I(kind,o={}){const K=ITEM[kind];return Object.assign({id:uid(),kind,d:K.d,h:5,dir:'along',count:2,gap:30},o);}
+function presets(){return [
+  {id:uid(),name:'Tradycyjny – folia na ruszcie',layers:[
+    L('chord',{t:15}),
+    L('wool',{t:12,pattern:'90',items:[I('wywiew',{h:8.2,count:2,gap:28}),I('peszel',{h:10.5,count:3,gap:9,dir:'cross'})]}),
+    L('grid2'),L('pe'),L('gk'),L('gk')]},
+  {id:uid(),name:'Warstwa instalacyjna – folia pod pasami',layers:[
+    L('wool',{t:15,pattern:'90'}),
+    L('chord',{t:15}),L('pe'),
+    L('wool',{t:4,pattern:'prosto'}),
+    L('air',{t:8,items:[I('wywiew',{h:4,count:2,gap:28}),I('peszel',{h:6.5,count:3,gap:9,dir:'cross'})]}),
+    L('grid2'),L('gk'),L('gk')]},
+  {id:uid(),name:'Folia w środku 15 / 15',layers:[
+    L('chord',{t:15}),L('pe'),
+    L('wool',{t:15,pattern:'90',items:[I('wywiew',{h:11,count:2,gap:28}),I('peszel',{h:13.5,count:3,gap:9,dir:'cross'})]}),
+    L('grid2'),L('gk'),L('gk')]},
+  presetGridWool(),
+];}
+function presetsRoof(){return [
+  {id:uid(),mode:'roof',name:'Skos – folia na ruszcie',layers:[L('wind'),L('rafter',{t:20}),L('wool',{t:10,pattern:'90'}),L('grid1'),L('pe'),L('gk')]},
+  {id:uid(),mode:'roof',name:'Skos – folia pod krokwiami',layers:[L('wind'),L('rafter',{t:24}),L('pe'),L('wool',{t:5,pattern:'90',items:[I('peszel',{h:2.5,count:3,gap:9,dir:'cross'})]}),L('grid1'),L('gk')]},
+];}
+function presetGridWool(){return {id:uid(),name:'Tradycyjny – ruszt wypełniony wełną',layers:[
+    L('chord',{t:15}),
+    L('wool',{t:10,pattern:'90',items:[I('wywiew',{h:6.2,count:2,gap:28}),I('peszel',{h:8.5,count:3,gap:9,dir:'cross'})]}),
+    L('grid2',{fill:'wool'}),L('pe'),L('gk'),L('gk')]};}
+const LOADED=load();
+let S=LOADED||{C:{...DEF_C},variants:presets(),active:null,mig1:true};
+if(!S.mig1){S.variants.push(presetGridWool());S.mig1=true;}
+if(!S.active||!S.variants.find(v=>v.id===S.active))S.active=S.variants[0].id;
+S.C={...DEF_C,...S.C};S.mode=S.mode||'flat';S.lastActive=S.lastActive||{};
+const vmode=v=>v.mode||'flat';
+const modeVariants=()=>S.variants.filter(v=>vmode(v)===S.mode);
+const calc=v=>compute(v.layers,S.C,vmode(v));
+if(vmode(S.variants.find(v=>v.id===S.active))!==S.mode){const mv=modeVariants();if(mv.length)S.active=mv[0].id;else S.mode=vmode(S.variants.find(v=>v.id===S.active));}
+const ui={open:new Set(),sel:null,cam:'iso',explode:0,xray:false,labels:true,dew:true,drag:null};
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY)||(OLD_KEY&&localStorage.getItem(OLD_KEY)));if(j&&Array.isArray(j.variants)&&j.variants.length&&j.variants.every(v=>Array.isArray(v.layers)&&v.layers.every(l=>MAT[l.type])))return j;}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const V=()=>S.variants.find(v=>v.id===S.active);
+const findL=id=>V().layers.find(l=>l.id===id);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tcm=t=>t<0.1?`${fmt(t*10,1)} mm`:(Number.isInteger(t)?`${t} cm`:`${fmt(t,Math.round(t*100)%10?2:1)} cm`);
+let RES=null;
+
+/* ---------- lista warstw ---------- */
+const PAT={prosto:'prosto',mijanka:'na mijankę','90':'pod kątem 90°'};
+function subline(l){const M=MAT[l.type];const p=[];
+  if(M.kind==='ins'){p.push(`λ ${fmt(l.lambda||M.lambda,3)}`);if(M.pattern)p.push(PAT[l.pattern]);}
+  if(M.kind==='framed'){p.push(`co ${l.spacing} cm`);p.push(FILL[l.fill].label);}
+  if(M.kind==='mem')p.push(`sd ${fmt(+l.sd,l.sd<1?2:0)} m`);
+  if(M.kind==='grid'){p.push(l.type==='grid2'?'2 poziomy profili':'1 poziom profili');p.push(l.fill==='wool'?'wypełniony wełną':'pusty');}
+  if(l.items&&l.items.length)p.push(`${l.items.length} ${l.items.length===1?'instalacja':'instalacje'}`);
+  return p.join(' · ');}
+function renderCards(){
+  const ls=V().layers;
+  if(!ls.length){$('#cards').innerHTML='<div class="empty">Brak warstw. Dodaj pierwszą z palety poniżej, np. płytę GK od strony pokoju.</div>';}
+  else $('#cards').innerHTML=ls.map((l,i)=>cardHTML(l,i,ls.length)).join('');
+  $('#tot').textContent=ls.length?`${fmt(ls.reduce((s,l)=>s+l.t,0),1)} cm łącznie`:'';
+}
+function cardHTML(l,i,n){const M=MAT[l.type];const open=ui.open.has(l.id);
+  const resizable=!M.fixed&&!M.boards;
+  const th=resizable?`<div class="tctl"><button data-act="dec" aria-label="Cieniej o 1 cm">−</button><span data-th>${tcm(l.t)}</span><button data-act="inc" aria-label="Grubiej o 1 cm">+</button></div>`:`<span class="tfix" data-th>${tcm(l.t)}</span>`;
+  return `<div class="card${ui.sel===l.id?' sel':''}" data-lid="${l.id}">
+  <div class="card-h"><span class="grip" title="Przeciągnij, aby przenieść" data-grip>⋮⋮</span><span class="sw" style="background:${M.color}"></span>
+  <button class="nm" data-act="toggle" aria-expanded="${open}"><b>${esc(M.label)}</b></button>
+  <div class="ops"><button class="ib" data-act="up" title="W górę" ${i===0?'disabled':''}>↑</button><button class="ib" data-act="down" title="W dół" ${i===n-1?'disabled':''}>↓</button><button class="ib" data-act="del" title="Usuń warstwę">×</button></div>
+  <div class="row2">${th}<small data-sub>${esc(subline(l))}</small></div></div>
+  <div class="card-b" ${open?'':'hidden'}>${bodyHTML(l)}</div></div>`;}
+function fld(label,inner){return `<div class="fld"><label>${label}</label>${inner}</div>`;}
+function num(field,val,step,min,max){return `<input type="number" data-f="${field}" value="${val}" step="${step}" ${min!=null?`min="${min}"`:''} ${max!=null?`max="${max}"`:''}>`;}
+function sel(field,val,opts){return `<select data-f="${field}">${Object.entries(opts).map(([k,v])=>`<option value="${k}" ${String(k)===String(val)?'selected':''}>${v}</option>`).join('')}</select>`;}
+function bodyHTML(l){const M=MAT[l.type];let h='';
+  if(!M.fixed&&!M.boards){h+=`<div class="rangew"><input type="range" data-f="t" min="${M.min}" max="${M.max}" step="1" value="${l.t}" aria-label="Grubość"><input type="number" data-f="t" min="${M.min}" max="${M.max}" step="1" value="${l.t}" class="num" style="height:30px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);padding:0 6px;width:100%"></div>`;}
+  const g=[];
+  if(M.boards)g.push(fld('Grubość płyty',sel('t',l.t,Object.fromEntries(M.boards.map(b=>[b,`${fmt(b*10,1)} mm`])))));
+  if(M.kind==='ins'){g.push(fld('λ [W/mK]',num('lambda',l.lambda||M.lambda,0.001,0.02,0.06)));if(M.pattern)g.push(fld('Układ mat',sel('pattern',l.pattern,PAT)));}
+  if(M.kind==='framed'){g.push(fld('Rozstaw osiowy [cm]',num('spacing',l.spacing,1,30,150)));g.push(fld('Szerokość drewna [cm]',num('woodW',l.woodW,0.5,3,20)));g.push(fld('Wypełnienie',sel('fill',l.fill,Object.fromEntries(Object.entries(FILL).map(([k,v])=>[k,v.label])))));if(l.fill!=='air')g.push(fld('λ wypełnienia',num('lambda',l.lambda||FILL[l.fill].lambda,0.001,0.02,0.06)));if(l.type!=='rafter')g.push(fld('Kierunek',sel('dir',l.dir,{along:'wzdłuż wiązarów',cross:'w poprzek wiązarów'})));}
+  if(M.kind==='mem')g.push(fld('sd [m]',num('sd',l.sd,0.01,0.01,1500)));
+  if(M.kind==='grid'){g.push(fld('Wypełnienie',sel('fill',l.fill||'air',{air:'pustka (sam ruszt)',wool:'wełna między profilami'})));if(l.fill==='wool')g.push(fld('λ wełny',num('lambda',l.lambda||0.035,0.001,0.02,0.06)));}
+  if(g.length)h+=`<div class="grid2">${g.join('')}</div>`;
+  if(l.type==='chord')h+='<p class="hint" style="margin:0">Zmierz wysokość pasa na budowie: przekroje bywają różne w różnych wiązarach (np. 12, 14,5 lub 19,5 cm).</p>';
+  if(M.items){
+    h+=`<div class="items">${(l.items||[]).map(it=>itemHTML(it,l)).join('')}</div>
+    <div class="addrow"><button class="chip" data-act="additem" data-kind="wywiew">+ kanał wywiew</button><button class="chip" data-act="additem" data-kind="nawiew">+ kanał nawiew</button><button class="chip" data-act="additem" data-kind="zimny">+ czerpnia/wyrzutnia</button><button class="chip" data-act="additem" data-kind="peszel">+ peszel</button><button class="chip" data-act="additem" data-kind="kabel">+ przewód</button></div>`;
+  }
+  return h;}
+function itemHTML(it,l){const K=ITEM[it.kind];
+  return `<div class="item" data-iid="${it.id}"><div class="item-h"><span>${K.label} Ø${it.d}</span><button class="ib" data-act="delitem" title="Usuń">×</button></div>
+  <div class="g3">${fld('Ø [mm]',num('d',it.d,1,5,250))}${fld('Oś od spodu [cm]',num('h',it.h,0.5,0,l.t))}${fld('Kierunek',sel('dir',it.dir,{along:'wzdłuż',cross:'w poprzek'}))}${fld('Sztuk w widoku',num('count',it.count,1,1,8))}${fld('Rozstaw [cm]',num('gap',it.gap,1,1,120))}${fld('Rodzaj',sel('kind',it.kind,Object.fromEntries(Object.entries(ITEM).map(([k,v])=>[k,v.label]))))}</div></div>`;}
+function renderPalette(){
+  const g={};Object.entries(MAT).forEach(([k,m])=>{if(m.modes&&!m.modes.includes(S.mode))return;(g[m.grp]=g[m.grp]||[]).push([k,m]);});
+  $('#palette').innerHTML=Object.entries(g).map(([n,arr])=>`<div class="pg"><span>${n}</span><div>${arr.map(([k,m])=>`<button class="pal" data-add="${k}"><i style="background:${m.color}"></i>${m.short}</button>`).join('')}</div></div>`).join('');
+}
+function patchCard(l){const c=document.querySelector(`.card[data-lid="${l.id}"]`);if(!c)return;
+  c.querySelectorAll('[data-th]').forEach(e=>e.textContent=tcm(l.t));
+  const s=c.querySelector('[data-sub]');if(s)s.textContent=subline(l);
+  c.querySelectorAll('input[data-f="t"]').forEach(e=>{if(document.activeElement!==e)e.value=l.t;});
+  $('#tot').textContent=`${fmt(V().layers.reduce((s,x)=>s+x.t,0),1)} cm łącznie`;}
+
+function clampT(l,v){const M=MAT[l.type];if(M.fixed||M.boards)return l.t;v=Math.round(v);return Math.max(M.min,Math.min(M.max,v));}
+function setT(l,v){const n=clampT(l,v);if(n===l.t)return false;l.t=n;(l.items||[]).forEach(it=>{if(it.h>l.t)it.h=l.t;});return true;}
+
+const cards=$('#cards');
+cards.addEventListener('click',e=>{
+  const card=e.target.closest('.card');if(!card)return;const l=findL(card.dataset.lid);if(!l)return;
+  const b=e.target.closest('[data-act]');const act=b?b.dataset.act:null;const ls=V().layers;const i=ls.indexOf(l);
+  if(!act){if(ui.sel!==l.id){ui.sel=l.id;markSel();}return;}
+  if(act==='toggle'){ui.sel=l.id;ui.open.has(l.id)?ui.open.delete(l.id):ui.open.add(l.id);renderCards();refresh();return;}
+  if(act==='inc'||act==='dec'){if(setT(l,l.t+(act==='inc'?1:-1))){patchCard(l);refresh();}return;}
+  if(act==='up'&&i>0){ls.splice(i,1);ls.splice(i-1,0,l);}
+  if(act==='down'&&i<ls.length-1){ls.splice(i,1);ls.splice(i+1,0,l);}
+  if(act==='del'){ls.splice(i,1);if(ui.sel===l.id)ui.sel=null;}
+  if(act==='additem'){const k=b.dataset.kind;const it=I(k,{h:Math.min(l.t,Math.max(ITEM[k].d/20,l.t/2)),count:k==='peszel'||k==='kabel'?3:1,gap:k==='peszel'||k==='kabel'?9:30,dir:k==='peszel'||k==='kabel'?'cross':'along'});l.items=l.items||[];l.items.push(it);}
+  if(act==='delitem'){const iid=b.closest('[data-iid]').dataset.iid;l.items=l.items.filter(x=>x.id!==iid);}
+  renderCards();refresh();
+});
+function onField(e,final){
+  const inp=e.target;const f=inp.dataset.f;if(!f)return;const card=inp.closest('.card');const l=findL(card.dataset.lid);if(!l)return;
+  const itemEl=inp.closest('[data-iid]');let v=inp.value;
+  if(itemEl){const it=l.items.find(x=>x.id===itemEl.dataset.iid);if(!it)return;
+    if(f==='kind'){it.kind=v;it.d=ITEM[v].d;renderCards();refresh();return;}
+    if(f==='dir'){it.dir=v;}else{v=parseFloat(String(v).replace(',','.'));if(!isFinite(v))return;it[f]=f==='count'?Math.max(1,Math.min(8,Math.round(v))):v;}
+    if(final){renderCards();}refresh();return;}
+  if(f==='t'){v=parseFloat(v);if(!isFinite(v))return;if(MAT[l.type].boards){l.t=v;}else setT(l,v);patchCard(l);refresh();return;}
+  if(['pattern','fill','dir'].includes(f)){l[f]=v;if(f==='fill')delete l.lambda;renderCards();refresh();return;}
+  v=parseFloat(String(v).replace(',','.'));if(!isFinite(v)||v<=0)return;l[f]=v;patchCard(l);refresh();
+}
+cards.addEventListener('input',e=>{if(e.target.tagName!=='SELECT')onField(e,false);});
+cards.addEventListener('change',e=>onField(e,true));
+// przeciąganie kart (mysz)
+let dragId=null;
+cards.addEventListener('pointerdown',e=>{if(e.target.closest('[data-grip]')){const c=e.target.closest('.card');c.setAttribute('draggable','true');}});
+cards.addEventListener('dragstart',e=>{const c=e.target.closest('.card');if(!c)return;dragId=c.dataset.lid;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId);}catch(_){}});
+cards.addEventListener('dragover',e=>{if(!dragId)return;const c=e.target.closest('.card');if(!c||c.dataset.lid===dragId)return;e.preventDefault();cards.querySelectorAll('.card').forEach(x=>x.classList.remove('drop-before','drop-after'));const r=c.getBoundingClientRect();c.classList.add(e.clientY<r.top+r.height/2?'drop-before':'drop-after');});
+cards.addEventListener('drop',e=>{if(!dragId)return;e.preventDefault();const c=e.target.closest('.card');if(!c)return;const ls=V().layers;const a=ls.findIndex(x=>x.id===dragId);const moving=ls.splice(a,1)[0];let b=ls.findIndex(x=>x.id===c.dataset.lid);if(c.classList.contains('drop-after'))b++;ls.splice(b,0,moving);dragId=null;renderCards();refresh();});
+cards.addEventListener('dragend',()=>{dragId=null;cards.querySelectorAll('.card').forEach(x=>{x.classList.remove('drop-before','drop-after');x.removeAttribute('draggable');});});
+$('#palette').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;const ls=V().layers;const l=L(b.dataset.add);const i=ui.sel?ls.findIndex(x=>x.id===ui.sel):-1;ls.splice(i>=0?i+1:0,0,l);ui.sel=l.id;ui.open.add(l.id);renderCards();refresh();});
+function markSel(){document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.dataset.lid===ui.sel));refresh();}
+function selectLayer(id,scroll){ui.sel=id;document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.dataset.lid===id));if(scroll){const c=document.querySelector(`.card[data-lid="${id}"]`);if(c&&window.innerWidth>860)c.scrollIntoView({block:'nearest',behavior:'smooth'});}refresh();}
+
+/* ---------- warunki i warianty ---------- */
+function bindConds(){document.querySelectorAll('[data-c]').forEach(inp=>{inp.value=S.C[inp.dataset.c];});}
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.c;if(!k)return;const v=parseFloat(String(e.target.value).replace(',','.'));if(!isFinite(v))return;S.C[k]=v;refresh();});
+document.querySelectorAll('[data-te]').forEach(b=>b.addEventListener('click',()=>{S.C.te=+b.dataset.te;bindConds();refresh();}));
+function renderVariants(){$('#vsel').innerHTML=modeVariants().map(v=>`<option value="${v.id}" ${v.id===S.active?'selected':''}>${esc(v.name)}</option>`).join('')+'<option value="__new">+ Nowy z przykładów…</option>';$('#vname').value=V().name;$('#vdel').disabled=modeVariants().length<2;}
+function applyMode(){const r=S.mode==='roof';const a=$('#app');a.classList.toggle('mode-roof',r);a.classList.toggle('mode-flat',!r);document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));$('#brandsub').textContent=r?'przegroda: skos poddasza użytkowego':'przegroda: piętro / nieogrzewany strych';}
+function setMode(m){if(S.mode===m)return;S.lastActive[S.mode]=S.active;S.mode=m;let mv=modeVariants();if(!mv.length){S.variants.push(...(m==='roof'?presetsRoof():presets()));mv=modeVariants();}const la=S.lastActive[m];S.active=(la&&mv.find(v=>v.id===la))?la:mv[0].id;ui.sel=null;ui.open.clear();closeInfo&&closeInfo();applyMode();renderPalette();renderVariants();renderCards();refresh(true);}
+document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+$('#vsel').addEventListener('change',e=>{if(e.target.value==='__new'){const add=S.mode==='roof'?presetsRoof():presets();add.forEach(v=>v.name+=' (przykład)');S.variants.push(...add);S.active=add[0].id;}else S.active=e.target.value;ui.sel=null;ui.open.clear();renderVariants();renderCards();refresh(true);});
+$('#vname').addEventListener('input',e=>{V().name=e.target.value||'Wariant';const o=$('#vsel').querySelector(`option[value="${S.active}"]`);if(o)o.textContent=V().name;renderDetails();save();});
+$('#vdup').addEventListener('click',()=>{const c=JSON.parse(JSON.stringify(V()));c.id=uid();c.name=V().name+' (kopia)';c.layers.forEach(l=>{l.id=uid();(l.items||[]).forEach(i=>i.id=uid());});S.variants.splice(S.variants.indexOf(V())+1,0,c);S.active=c.id;ui.sel=null;renderVariants();renderCards();refresh();toast('Skopiowano wariant');});
+let delArm=0;$('#vdel').addEventListener('click',()=>{if(modeVariants().length<2)return;if(Date.now()-delArm>3000){delArm=Date.now();$('#vdel').textContent='Na pewno?';setTimeout(()=>{$('#vdel').textContent='Usuń';},3000);return;}delArm=0;$('#vdel').textContent='Usuń';const i=S.variants.indexOf(V());S.variants.splice(i,1);S.active=modeVariants()[0].id;ui.sel=null;renderVariants();renderCards();refresh(true);toast('Usunięto wariant');});
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800);}
+
+/* ---------- skrót i szczegóły ---------- */
+const LBL={ok:'w normie',warn:'uwaga',bad:'problem'};
+function tileData(R){const C=S.C,st=R.status,b=R.barrier;
+  const pipeTxt=R.pipes.length?({ok:'bez zastrzeżeń',warn:'sprawdź kanały',bad:'problem z kanałem'})[st.pipes]:'brak w przekroju';
+  return [
+    {cls:st.U,k:'Współczynnik U',v:fmt(R.U,3),u:'W/m²K',s:st.U==='ok'?'spełnia WT ≤ 0,15':'przekracza WT 0,15'},
+    {cls:st.bar,k:'Temperatura folii',v:b?fmt(b.theta,1):'brak',u:b?'°C':'',s:b?`punkt rosy ${fmt(R.dewIn,1)} °C`:'dodaj paroizolację'},
+    {cls:st.cond,k:'Kondensacja',v:R.cond?fmt(R.cond.gday||0,0):'brak',u:R.cond?'g/m²·doba':'',s:R.cond?`w warstwie: ${R.cond.layer}`:`przy ${fmt(C.te,0)} °C ${R.mode==='roof'?'na zewnątrz':'na strychu'}`},
+    {cls:st.pipes,k:'Kanały i peszle',v:String(R.pipes.length),u:R.pipes.length===1?'pozycja':'pozycji',s:pipeTxt},
+    {cls:st.h,k:'Pokój w świetle',v:fmt(R.clear,1),u:'cm',s:`posadzka → pas ${fmt(R.h0,1)} cm`},
+    {cls:st.load,k:'Obciążenie pasa',v:fmt(R.kg,1),u:'kg/m²',s:`limit pasa ${fmt(C.loadMax,0)}`}].map((t,i)=>{
+      if(R.mode!=='roof')return t;const f=R.roof;
+      if(i===4)return {cls:'ok',k:'Skos przy ściance',v:fmt(f.hk,1),u:'cm',s:`2,2 m po ${fmt(f.d220,0)} cm od ścianki`};
+      if(i===5)return {cls:'ok',k:'Izolacja łącznie',v:fmt(R.wool,0),u:'cm',s:`zabudowa pod krokwią ${fmt(R.yAnchor,1)} cm`};
+      return t;});}
+function renderTiles(R){$('#tiles').innerHTML=tileData(R).map(t=>`<div class="tile ${t.cls}"><div class="k">${t.k}</div><div class="v">${t.v}${t.u?` <small>${t.u}</small>`:''}</div><div class="s">${t.s}</div></div>`).join('');}
+function renderDetails(){const R=RES,C=S.C;const b=R.barrier;
+  const pill=(s,txt)=>`<span class="pill ${s}">${txt||LBL[s]}</span>`;
+  const ib=k=>`<button class="info" data-info="${k}" aria-label="Wyjaśnienie">i</button>`;
+  let h=`<section class="sec"><h2><span class="h2l">Izolacyjność ${ib('U')}</span>${pill(R.status.U,R.status.U==='ok'?'WT 2021 OK':'powyżej WT')}</h2>
+   <div class="big"><b>${fmt(R.U,3)}</b><span>W/m²K</span></div>
+   <dl class="kv"><dt>Opór całkowity R<sub>T</sub></dt><dd>${fmt(R.RT,2)} m²K/W</dd>
+   <dt>U bez korekty</dt><dd>${fmt(R.U0,3)}</dd>
+   <dt>Korekta na szczeliny ΔU<sub>g</sub> ${ib('dUg')}</dt><dd>${fmt(R.dUg,4)}</dd>
+   <dt>Izolacja łącznie</dt><dd>${fmt(R.wool,0)} cm</dd>
+   <dt>Strumień przy ${fmt(C.ti-C.te,0)} K</dt><dd>${fmt(R.q,1)} W/m²</dd>
+   <dt>Strata przez ${fmt(C.area,0)} m² sufitu</dt><dd>${fmt(R.P,0)} W</dd>
+   <dt>Sezon (${fmt(C.hdd,0)} stopniodni)</dt><dd>${fmt(R.kWh,0)} kWh/rok</dd>
+   <dt>Temp. powierzchni sufitu</dt><dd>${fmt(R.thetaSi,1)} °C</dd></dl>
+   ${R.gaps.filter(g=>g.lvl).length?`<p class="msg warn">Maty ułożone w jednej warstwie lub „prosto” na sobie mają spoiny na wylot. Ułożenie górnej warstwy na mijankę lub pod 90° usuwa tę korektę.</p>`:''}
+  </section>`;
+  h+=`<section class="sec"><h2><span class="h2l">Paroizolacja ${ib('bar')}</span>${pill(R.status.bar,b?null:'brak')}</h2>`;
+  if(b){h+=`<dl class="kv"><dt>Temperatura na folii</dt><dd>${fmt(b.theta,1)} °C</dd><dt>Punkt rosy powietrza w pokoju</dt><dd>${fmt(R.dewIn,1)} °C</dd><dt>Zapas</dt><dd>${fmt(b.margin,1)} K</dd><dt>Izolacji pod folią (ciepła strona)</dt><dd>${fmt(b.ratio*100,0)} %</dd><dt>sd paroizolacji</dt><dd>${fmt(b.sd,b.sd<10?1:0)} m</dd></dl>`;
+    h+=b.status==='ok'?`<p class="msg ok">Folia leży w ciepłej strefie: para z pokoju nie skropli się przed nią.</p>`:b.status==='warn'?`<p class="msg warn">Folia tuż nad punktem rosy. Zasada: pod folią najwyżej ok. 1/3 izolacji.</p>`:`<p class="msg bad">Folia jest zimniejsza niż punkt rosy (${fmt(b.ratio*100,0)} % izolacji pod nią). Para z pokoju skropli się pod folią, w dolnej warstwie. Przenieś izolację nad folię.</p>`;
+    if(R.hangers)h+=`<p class="msg ${R.hangers.pierce?'warn':''}">Wieszaki rusztu: ok. ${fmt(R.hangers.perM2,1)} szt./m², czyli ${fmt(R.hangers.count,0)} na ${fmt(C.area,0)} m². ${R.hangers.pierce?'Każdy przechodzi przez folię: uszczelnij taśmą butylową.':'Wszystkie nad folią, bez przebić.'}</p>`;
+  } else h+=`<p class="msg bad">W przekroju nie ma warstwy o sd ≥ 2 m. Bez paroizolacji para z pokoju wejdzie w wełnę.</p>`;
+  h+=`</section>`;
+  h+=`<section class="sec"><h2><span class="h2l">Kondensacja (Glaser) ${ib('kond')}</span>${pill(R.status.cond,R.cond?'kondensacja':'brak')}</h2>
+   <dl class="kv"><dt>Para w pokoju p<sub>i</sub></dt><dd>${fmt(R.pi,0)} Pa</dd><dt>Para na strychu p<sub>e</sub></dt><dd>${fmt(R.pe,0)} Pa</dd><dt>Suma sd przegrody</dt><dd>${fmt(R.sdT,1)} m</dd></dl>
+   ${R.cond?`<p class="msg bad">Para skrapla się w warstwie „${R.cond.layer}” na wysokości ok. ${fmt(R.cond.yPlane,1)} cm nad sufitem (${fmt(R.cond.th,1)} °C). Przy tych warunkach ok. ${fmt(R.cond.gday||0,0)} g/m² na dobę.</p>`:`<p class="msg ok">Ciśnienie pary wszędzie poniżej nasycenia przy ${fmt(C.te,0)} °C na strychu.</p>`}
+   <p class="note" style="margin-top:8px">Warunki chwilowe, bez bilansu rocznego (PN-EN ISO 13788). Daje obraz najgorszego dnia, nie roczną ilość wody.</p></section>`;
+  h+=`<section class="sec"><h2><span class="h2l">Kanały i instalacje ${ib('pipes')}</span>${R.pipes.length?pill(R.status.pipes):''}</h2>`;
+  h+=R.pipes.length?`<div class="pipes">${R.pipes.map(p=>`<div class="pipe"><div class="t"><span>${p.K.label} Ø${p.it.d}</span>${pill(p.lvl)}</div>
+     <dl class="kv" style="margin-top:6px"><dt>Warstwa</dt><dd style="font-family:var(--font-d)">${p.layer}</dd><dt>Wierzch rury nad sufitem</dt><dd>${fmt(p.top,1)} cm</dd><dt>Temperatura nad rurą</dt><dd>${fmt(p.tTop,1)} °C</dd><dt>Izolacji nad rurą</dt><dd>${fmt(p.insAbove,1)} cm</dd></dl>
+     <ul>${p.msgs.map(m=>`<li>${m}</li>`).join('')}</ul></div>`).join('')}</div>
+     <p class="note" style="margin-top:8px">Punkt rosy wywiewu: ${fmt(R.dewEx,1)} °C (${fmt(C.rhEx,0)} % RH, łazienki). Temperatury liczone przy ${fmt(C.te,0)} °C na strychu.</p>`:`<p class="hint">Dodaj kanał lub peszel w warstwie wełny albo pustki (rozwiń warstwę na liście).</p>`;
+  h+=`</section>`;
+  const fr=R.roof;
+  h+=(fr?`<section class="sec"><h2><span class="h2l">Skos i ścianka kolankowa ${ib('roof')}</span></h2>
+   <dl class="kv"><dt>Kąt dachu</dt><dd>${fmt(C.alpha,0)}°</dd><dt>Zabudowa pod krokwią (prostopadle)</dt><dd>${fmt(R.yAnchor,1)} cm</dd><dt>Obniżenie skosu w pionie</dt><dd>${fmt(fr.dz,1)} cm</dd><dt>Przesunięcie skosu w poziomie</dt><dd>${fmt(fr.dx,1)} cm</dd><dt>Skos przy ściance (gotowy)</dt><dd>${fmt(fr.hk,1)} cm</dd><dt>Od ścianki do 1,4 m</dt><dd>${fmt(fr.d140,0)} cm</dd><dt>Od ścianki do 2,2 m</dt><dd>${fmt(fr.d220,0)} cm</dd><dt>Ciężar warstw (bez krokwi)</dt><dd>${fmt(R.kg,1)} kg/m²</dd></dl>
+   <div class="grid2" style="margin-top:10px"><div class="fld"><label for="c_area">Powierzchnia skosów [m²]</label><input id="c_area" type="number" step="1" data-c="area" value="${C.area}"></div></div>
+   <p class="note" style="margin-top:8px">Kąt i wysokość przy ściance wpisujesz w panelu po lewej.</p>`:`<section class="sec"><h2>Wysokość i obciążenie</h2>
+   <div class="grid2"><div class="fld"><label for="c_area">Powierzchnia sufitu [m²]</label><input id="c_area" type="number" step="1" data-c="area" value="${C.area}"></div>
+   <div class="fld"><label for="c_loadMax">Limit pasa [kg/m²]</label><input id="c_loadMax" type="number" step="1" data-c="loadMax" value="${C.loadMax}"></div></div>
+   <dl class="kv" style="margin-top:10px"><dt>Wylewka → spód pasa</dt><dd>${fmt(C.hScreed,1)} cm</dd><dt>Podłoga docelowa</dt><dd>${fmt(C.floorT,1)} cm</dd><dt>Posadzka gotowa → spód pasa</dt><dd>${fmt(R.h0,1)} cm</dd><dt>Pokój w świetle</dt><dd>${fmt(R.clear,1)} cm ${pill(R.status.h)}</dd><dt>Zabudowa pod pasem</dt><dd>${fmt(R.yAnchor,1)} cm</dd><dt>Ciężar warstw (bez wiązarów)</dt><dd>${fmt(R.kg,1)} kg/m²</dd></dl>
+   <p class="note" style="margin-top:8px">Wysokości wpisujesz w panelu po lewej. Limit obciążenia pasa dolnego weź z projektu wiązarów albo umowy z ich producentem (często 50 kg/m²). Strefa składowania na strychu ma zwykle osobne, wyższe obciążenie.</p>`)+`
+   <details class="adv" ${ui.adv?'open':''}><summary>Ustawienia zaawansowane</summary><div class="grid2" style="margin-top:8px">
+   <div class="fld"><label for="c_rsi">R<sub>si</sub> [m²K/W]</label><input id="c_rsi" type="number" step="0.01" data-c="rsi" value="${C.rsi}"></div>
+   <div class="fld"><label for="c_rse">R<sub>se</sub> [m²K/W]</label><input id="c_rse" type="number" step="0.01" data-c="rse" value="${C.rse}"></div>
+   <div class="fld"><label for="c_rhEx">RH wywiewu [%]</label><input id="c_rhEx" type="number" step="1" data-c="rhEx" value="${C.rhEx}"></div>
+   <div class="fld"><label for="c_tSupply">Nawiew [°C]</label><input id="c_tSupply" type="number" step="0.5" data-c="tSupply" value="${C.tSupply}"></div>
+   <div class="fld"><label for="c_hdd">Stopniodni [K·d]</label><input id="c_hdd" type="number" step="50" data-c="hdd" value="${C.hdd}"></div></div></details>
+  </section>`;
+  // porównanie
+  const all=modeVariants().map(v=>({v,r:calc(v)}));
+  h+=`<section class="sec"><h2>Porównanie wariantów</h2><div class="cmpwrap"><table class="cmp"><thead><tr><th>Wariant</th><th>U</th><th>Folia °C</th><th>Rosa</th><th>${S.mode==='roof'?'Skos':'Pokój'}</th></tr></thead><tbody>
+   ${all.map(({v,r})=>`<tr data-v="${v.id}" class="${v.id===S.active?'cur':''}"><td>${esc(v.name)}</td><td>${fmt(r.U,3)}</td><td>${r.barrier?fmt(r.barrier.theta,1):'–'}</td><td>${r.cond?'<span class="pill bad">tak</span>':'<span class="pill ok">nie</span>'}</td><td>${r.roof?fmt(r.roof.hk,0):fmt(r.clear,0)}</td></tr>`).join('')}
+   </tbody></table></div><p class="note" style="margin-top:8px">Kliknij wiersz, aby przełączyć wariant. Warianty zapisują się w tej przeglądarce.</p>
+   <p class="note">Metoda uproszczona: PN-EN ISO 6946 (warstwy niejednorodne uśrednione powierzchniowo), Glaser wg ISO 13788. Do decyzji wykonawczych skonsultuj z projektantem.</p></section>`;
+  $('#details').innerHTML=h;
+}
+$('#details').addEventListener('toggle',e=>{if(e.target.matches&&e.target.matches('details.adv'))ui.adv=e.target.open;},true);
+$('#details').addEventListener('click',e=>{const tr=e.target.closest('tr[data-v]');if(!tr||tr.dataset.v===S.active)return;S.active=tr.dataset.v;ui.sel=null;renderVariants();renderCards();refresh(true);});
+
+/* ---------- przekrój SVG ---------- */
+function wave(x0,x1,yt,yb){const h=yb-yt;if(h<3)return '';const wl=Math.max(6,Math.min(36,h*0.9));let d=`M${x0},${yb}`;let up=true;for(let x=x0;x<x1;x+=wl/2){const nx=Math.min(x1,x+wl/2);const ya=up?yb:yt,yb2=up?yt:yb;d+=` C${x+(nx-x)/2},${ya} ${x+(nx-x)/2},${yb2} ${nx},${yb2}`;up=!up;}return d;}
+function renderSection(){const host=$('#section');const W=Math.max(330,Math.floor(host.clientWidth));const o=sectionSVG(W,W<600?440:520,false);host.innerHTML=o.svg;host._s=o.s;}
+function sectionSVG(W,H,print){
+  const R=RES,C=S.C;const mob=W<600;
+  const top=46,bot=40;const total=Math.max(1,R.total);
+  const s=(!print&&ui.drag)?ui.drag.scale:Math.min(14,(H-top-bot)/total);
+  const usedH=total*s, Ht=Math.ceil(top+usedH+bot);
+  const Y=y=>top+(total-y)*s;
+  const rulerW=mob?38:50,gap=mob?8:12;const stripW=Math.round(Math.min(240,Math.max(110,W*(mob?0.33:0.3))));
+  const colW=(W-rulerW-stripW-gap*3)/2;const xS=rulerW+gap,xT=xS+stripW+gap,xV=xT+colW+gap;
+  const winCm=stripW/s;const cx=xS+stripW/2;const X=xc=>cx+xc*s;
+  const fs=mob?10.5:11.5;
+  let g='';
+  const defs=`<defs><clipPath id="clipS"><rect x="${xS}" y="${top}" width="${stripW}" height="${usedH}"/></clipPath>
+   <pattern id="pGK" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".7" fill="#8f8a7d"/></pattern>
+   <pattern id="pWood" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8a5f33" stroke-width="1"/></pattern>
+   <pattern id="pOSB" width="9" height="5" patternUnits="userSpaceOnUse"><line x1="1" y1="2" x2="6" y2="2" stroke="#9c7741" stroke-width="1"/><line x1="4" y1="4.2" x2="8" y2="4.2" stroke="#9c7741" stroke-width=".8"/></pattern>
+   <pattern id="pBlown" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="2" r=".9" fill="#a8873f"/><circle cx="4.5" cy="4.6" r=".7" fill="#a8873f"/></pattern></defs>`;
+  // kolumna: przekrój
+  g+=`<g clip-path="url(#clipS)">`;
+  const rows=R.rows;
+  for(const r of rows){const l=r.L,M=MAT[l.type];const yt=Y(r.y1),yb=Y(r.y0),hpx=yb-yt;const x0=xS,x1=xS+stripW;const selc=!print&&ui.sel===l.id;
+    let body='';
+    const woolPart=(fill)=>{if(fill==='air')return `<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="var(--panel)"/>`;if(fill==='blown')return `<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="${MAT.blown.color}"/><rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="url(#pBlown)"/>`;return `<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="${MAT.wool.color}"/><path d="${wave(x0,x1,yt+1,yb-1)}" fill="none" stroke="#8d6a1c" stroke-width="1" opacity=".55"/>`;};
+    if(M.kind==='ins')body=woolPart(l.type==='blown'?'blown':'wool');
+    else if(M.kind==='framed'){body=woolPart(l.fill);const bw=l.woodW*s;const n=Math.ceil(winCm/l.spacing)+1;for(let k=-n;k<=n;k++){const xc=k*l.spacing;if(Math.abs(xc)>winCm/2+l.woodW)continue;
+        if(l.dir==='cross'&&k!==0)continue;
+        body+=`<rect x="${X(xc)-bw/2}" y="${yt}" width="${bw}" height="${hpx}" fill="${M.color}" stroke="#7a5228" stroke-width=".8"/><rect x="${X(xc)-bw/2}" y="${yt}" width="${bw}" height="${hpx}" fill="url(#pWood)" opacity=".5"/>`;}
+      if(l.dir==='cross')body+=`<text x="${x1-4}" y="${yt+11}" text-anchor="end" font-size="9.5" fill="#5a3d1c">legar w osi</text>`;}
+    else if(M.kind==='air')body=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="var(--panel)"/>`;
+    else if(M.kind==='grid'){body=l.fill==='wool'?woolPart('wool'):`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="var(--panel)"/>`;const ph=2.7*s;
+      if(l.type==='grid2'){body+=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${ph}" fill="#a3adb2" stroke="#6b767b" stroke-width=".8"/>`;const yl=yt+ph;for(let xc=-Math.floor(winCm/2/50)*50;xc<=winCm/2;xc+=50){const w=6*s;body+=`<path d="M${X(xc)-w/2},${yl} v${ph} h${w} v${-ph}" fill="#b8c0c4" stroke="#6b767b" stroke-width="1"/>`;}}
+      else body+=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="#a3adb2" stroke="#6b767b" stroke-width=".8"/>`;}
+    else if(M.kind==='board'){body=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="${M.color}" stroke="#8a8578" stroke-width=".6"/>`;
+      if(l.type==='gk')body+=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="url(#pGK)"/>`;
+      if(l.type==='osb')body+=`<rect x="${x0}" y="${yt}" width="${stripW}" height="${hpx}" fill="url(#pOSB)"/>`;
+      if(M.gaps){for(let xc=-winCm/2;xc<winCm/2;xc+=17)body+=`<rect x="${X(xc)+15*s}" y="${yt}" width="${2*s}" height="${hpx}" fill="var(--panel)"/>`;}}
+    if(M.kind!=='mem')g+=`<g class="lay" data-lid="${l.id}">${body}${selc?`<rect x="${x0+1}" y="${yt+1}" width="${stripW-2}" height="${Math.max(1,hpx-2)}" fill="none" stroke="var(--accent)" stroke-width="2"/>`:''}</g>`;
+  }
+  // instalacje
+  for(const r of rows){for(const it of (r.L.items||[])){const K=ITEM[it.kind];const yc=Y(r.y0+it.h),rad=it.d/20*s;
+    if(it.dir==='cross'){g+=`<rect x="${xS}" y="${yc-rad}" width="${stripW}" height="${2*rad}" fill="${K.color}" stroke="#5c5a52" stroke-width=".8" ${K.duct?'':'stroke-dasharray="2 1.5"'}/>`;}
+    else{const n=it.count;for(let k=0;k<n;k++){const xc=(k-(n-1)/2)*it.gap;if(Math.abs(xc)>winCm/2+it.d/20)continue;g+=`<circle cx="${X(xc)}" cy="${yc}" r="${rad}" fill="${K.color}" stroke="#5c5a52" stroke-width="1" ${K.duct?'':'stroke-dasharray="2 1.5"'}/>`;if(K.duct&&rad>5)g+=`<circle cx="${X(xc)}" cy="${yc}" r="${rad*0.86}" fill="none" stroke="#9a968a" stroke-width=".6"/>`;}}}}
+  // membrany
+  for(const r of rows){const M=MAT[r.L.type];if(M.kind!=='mem')continue;const y=Y(r.y0);g+=`<g class="lay" data-lid="${r.L.id}"><line x1="${xS}" y1="${y}" x2="${xS+stripW}" y2="${y}" stroke="${M.color}" stroke-width="${ui.sel===r.L.id?4:2.6}" stroke-dasharray="${r.L.type==='wind'?'5 3':'0'}"/><rect x="${xS}" y="${y-4}" width="${stripW}" height="8" fill="transparent"/></g>`;}
+  g+=`</g><rect x="${xS}" y="${top}" width="${stripW}" height="${usedH}" fill="none" stroke="var(--line2)" stroke-width="1"/>`;
+  // etykiety warstw
+  for(const r of rows){const M=MAT[r.L.type];const yt=Y(r.y1),yb=Y(r.y0);if(M.kind==='mem'){g+=`<text x="${xS+4}" y="${yb-4}" font-size="${fs-1}" fill="${M.color}" font-weight="600">${M.short}</text>`;continue;}
+    if(yb-yt>=15){const txt=`${M.short} ${tcm(r.L.t)}`;const w=txt.length*(fs*0.56)+8;g+=`<g pointer-events="none"><rect x="${xS+3}" y="${(yt+yb)/2-8}" width="${Math.min(w,stripW-6)}" height="16" rx="3" fill="var(--panel)" opacity=".86"/><text x="${xS+7}" y="${(yt+yb)/2+4}" font-size="${fs}" fill="var(--ink)">${txt}</text></g>`;}}
+  // uchwyty zmiany grubości
+  if(!print)for(const r of rows){const M=MAT[r.L.type];if(M.fixed||M.boards)continue;const y=Y(r.y1);
+    g+=`<g class="hdl" data-lid="${r.L.id}"><rect x="${xS-4}" y="${y-6}" width="${stripW+8}" height="12" fill="transparent"/><rect x="${xS+stripW-22}" y="${y-3}" width="18" height="6" rx="3" fill="var(--accent)" opacity="${ui.drag&&ui.drag.lid===r.L.id?1:.55}"/></g>`;}
+  // linijka
+  const ticks=[];rows.forEach(r=>{ticks.push(r.y0);});ticks.push(total);
+  let lastY=-1e9;g+=`<text x="${rulerW}" y="${top-26}" font-size="${fs-1}" fill="var(--muted)" text-anchor="end">${R.mode==='roof'?'od':'nad pos.'}</text><text x="${rulerW}" y="${top-13}" font-size="${fs-1}" fill="var(--muted)" text-anchor="end">${R.mode==='roof'?'wnętrza':'gotową'}</text>`;
+  const hFloor=y=>R.mode==='roof'?y:R.h0-(R.yAnchor-y);
+  [...new Set(ticks.map(t=>Math.round(t*100)/100))].sort((a,b)=>a-b).forEach(t=>{const y=Y(t);const strong=Math.abs(t-R.yAnchor)<1e-6||t===0;
+    g+=`<line x1="${rulerW+2}" x2="${xS}" y1="${y}" y2="${y}" stroke="${strong?'var(--ink)':'var(--line2)'}" stroke-width="${strong?1.2:.8}"/>`;
+    if(Math.abs(y-lastY)>=12||strong){g+=`<text x="${rulerW}" y="${y+4}" font-size="${fs-0.5}" text-anchor="end" fill="${strong?'var(--ink)':'var(--muted)'}" font-family="IBM Plex Mono, monospace">${fmt(hFloor(t),1)}</text>`;lastY=y;}});
+  // kolumna temperatury
+  const tmin=Math.floor(Math.min(C.te,R.dewIn)/5)*5-2,tmax=Math.ceil(C.ti/5)*5+2;const XT=t=>xT+(t-tmin)/(tmax-tmin)*colW;
+  const ii=(x,y,k)=>print?'':`<g data-info="${k}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="7.5" fill="var(--panel)" stroke="var(--line2)"/><text x="${x}" y="${y+3.6}" font-size="10" text-anchor="middle" fill="var(--muted)" font-weight="600" font-family="IBM Plex Mono, monospace">i</text></g>`;
+  g+=`<text x="${xT}" y="${top-26}" font-size="${fs}" font-weight="600" fill="var(--ink)">Temperatura</text>${ii(xT+fs*6.4+10,top-30,'temp')}<text x="${xT}" y="${top-12}" font-size="${fs-1}" fill="var(--muted)">°C</text>`;
+  g+=`<rect x="${xT}" y="${top}" width="${colW}" height="${usedH}" fill="var(--sunk)" opacity=".55"/>`;
+  for(let t=Math.ceil(tmin/5)*5;t<=tmax;t+=5){const x=XT(t);g+=`<line x1="${x}" x2="${x}" y1="${top}" y2="${top+usedH}" stroke="var(--line)" stroke-width="${t===0?1.2:.7}"/>`;if((t%10===0)||colW>200)g+=`<text x="${x}" y="${top+usedH+14}" font-size="${fs-1.5}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${t}</text>`;}
+  let tp='';rows.forEach((r,i)=>{tp+=`${i?'L':'M'}${XT(R.T(r.R0))},${Y(r.y0)} L${XT(R.T(r.R1))},${Y(r.y1)} `;});
+  const xd=XT(R.dewIn);g+=`<line x1="${xd}" x2="${xd}" y1="${top}" y2="${top+usedH}" stroke="var(--dew)" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+  if(rows.length)g+=`<path d="${tp}" fill="none" stroke="var(--warm)" stroke-width="2.2" stroke-linejoin="round"/>`;
+  if(R.barrier){const x=XT(R.barrier.theta),y=Y(R.barrier.y);const c=R.barrier.status==='ok'?'var(--ok)':R.barrier.status==='warn'?'var(--warn)':'var(--bad)';g+=`<circle cx="${x}" cy="${y}" r="4.5" fill="${c}" stroke="var(--panel)" stroke-width="1.5"/><text x="${x+(x>xT+colW-70?-8:8)}" y="${y-7}" font-size="${fs-0.5}" fill="${c}" text-anchor="${x>xT+colW-70?'end':'start'}" font-family="IBM Plex Mono, monospace">folia ${fmt(R.barrier.theta,1)}°</text>`;}
+  R.pipes.filter(p=>p.K.duct).forEach(p=>{const x=XT(p.tTop),y=Y(Math.min(p.top,total));g+=`<rect x="${x-3}" y="${y-3}" width="6" height="6" fill="${p.lvl==='ok'?'var(--ok)':p.lvl==='warn'?'var(--warn)':'var(--bad)'}" transform="rotate(45 ${x} ${y})"/>`;});
+  g+=`<text x="${xd+4}" y="${top+usedH-6}" font-size="${fs-1.5}" fill="var(--dew)" font-family="IBM Plex Mono, monospace">θd ${fmt(R.dewIn,1)}</text>`;
+  // kolumna pary
+  const pmax=Math.max(psat(C.ti),R.pi)*1.08;const XV=p=>xV+p/pmax*colW;
+  g+=`<text x="${xV}" y="${top-26}" font-size="${fs}" font-weight="600" fill="var(--ink)">Ciśnienie pary</text>${ii(xV+fs*7.6+10,top-30,'p')}<text x="${xV}" y="${top-12}" font-size="${fs-1}" fill="var(--muted)">Pa</text>`;
+  g+=`<rect x="${xV}" y="${top}" width="${colW}" height="${usedH}" fill="var(--sunk)" opacity=".55"/>`;
+  const pstep=pmax>2000?1000:500;for(let p=0;p<=pmax;p+=pstep){const x=XV(p);g+=`<line x1="${x}" x2="${x}" y1="${top}" y2="${top+usedH}" stroke="var(--line)" stroke-width=".7"/><text x="${x}" y="${top+usedH+14}" font-size="${fs-1.5}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${p}</text>`;}
+  const sm=R.samples;if(sm.length){let ps='',pp='';sm.forEach((q,i)=>{ps+=`${i?'L':'M'}${XV(q.ps)},${Y(q.y)} `;pp+=`${i?'L':'M'}${XV(q.p)},${Y(q.y)} `;});
+    g+=`<path d="${ps}" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="2 3"/><path d="${pp}" fill="none" stroke="var(--vapor)" stroke-width="2"/>`;
+    let cz='';for(let i=1;i<sm.length;i++){if(sm[i].p>sm[i].ps&&sm[i-1].p>sm[i-1].ps)cz+=`M${XV(sm[i-1].p)},${Y(sm[i-1].y)} L${XV(sm[i].p)},${Y(sm[i].y)} `;}
+    if(cz)g+=`<path d="${cz}" fill="none" stroke="var(--bad)" stroke-width="5" stroke-linecap="round" opacity=".85"/>`;}
+  if(R.cond){const y=Y(R.cond.yPlane);g+=`<line x1="${xS}" x2="${xV+colW}" y1="${y}" y2="${y}" stroke="var(--bad)" stroke-width="1" stroke-dasharray="3 3"/>`;}
+  // płaszczyzna punktu rosy
+  if(R.yDew!=null){const y=Y(R.yDew);g+=`<line x1="${xS}" x2="${xV+colW}" y1="${y}" y2="${y}" stroke="var(--dew)" stroke-width="1.6" stroke-dasharray="7 4" opacity=".9"/><circle cx="${XT(R.dewIn)}" cy="${y}" r="3.5" fill="var(--dew)"/>`;
+    const lab=`punkt rosy ${fmt(R.dewIn,1)} °C`;const lw=lab.length*fs*0.56+10;g+=`<rect x="${xS+stripW-lw-2}" y="${y-17}" width="${lw}" height="15" rx="3" fill="var(--panel)" opacity=".9"/><text x="${xS+stripW-6}" y="${y-6}" font-size="${fs-1}" text-anchor="end" fill="var(--dew)" font-weight="600">${lab}</text>`;}
+  // opisy krawędzi
+  g+=`<text x="${xS}" y="${top-12}" font-size="${fs}" fill="var(--cold)" font-weight="600">${R.mode==='roof'?'Na zewnątrz':'Strych'} ${fmt(C.te,0)} °C · ${fmt(C.rhe,0)} %</text>`;
+  g+=`<text x="${xS}" y="${top+usedH+30}" font-size="${fs}" fill="var(--warm)" font-weight="600">Pokój ${fmt(C.ti,0)} °C · ${fmt(C.rhi,0)} %</text>`;
+  return {s,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${Ht}" viewBox="0 0 ${W} ${Ht}" font-family="Archivo, system-ui, sans-serif" role="img" aria-label="Przekrój przegrody w skali z profilem temperatury i ciśnienia pary">${print?`<rect width="${W}" height="${Ht}" fill="#ffffff"/>`:''}${defs}${g}</svg>`};
+}
+$('#section').addEventListener('pointerdown',e=>{
+  const h=e.target.closest('.hdl');
+  if(h){e.preventDefault();const l=findL(h.dataset.lid);ui.drag={lid:l.id,startY:e.clientY,startT:l.t,scale:$('#section')._s};ui.sel=l.id;
+    const mv=ev=>{const d=(ui.drag.startY-ev.clientY)/ui.drag.scale;if(setT(l,ui.drag.startT+d)){patchCard(l);refresh();}};
+    const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);ui.drag=null;renderCards();refresh();};
+    window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);markSelCards();return;}
+  const lay=e.target.closest('.lay');if(lay)selectLayer(lay.dataset.lid,true);
+});
+function markSelCards(){document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.dataset.lid===ui.sel));}
+
+/* ---------- widok 3D ---------- */
+let W3=240,D3=120;const G={};
+function setTilt(){D3=S.mode==='roof'?200:120;if(!G.root)return;G.root.rotation.set(0,0,S.mode==='roof'?Math.max(5,Math.min(80,S.C.alpha||40))*Math.PI/180:0);G.root.updateMatrixWorld(true);}
+function init3D(){
+  const stage=$('#stage');
+  if(!window.THREE){stage.insertAdjacentHTML('beforeend','<div class="nogl">Nie udało się wczytać biblioteki 3D. Przekrój 2D i obliczenia działają normalnie.</div>');return;}
+  try{G.r=new THREE.WebGLRenderer({antialias:true,alpha:true});}catch(e){stage.insertAdjacentHTML('beforeend','<div class="nogl">Ta przeglądarka nie obsługuje WebGL. Przekrój 2D i obliczenia działają normalnie.</div>');return;}
+  G.r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));stage.insertBefore(G.r.domElement,stage.firstChild);
+  G.scene=new THREE.Scene();G.cam=new THREE.PerspectiveCamera(30,1,1,6000);
+  G.scene.add(new THREE.HemisphereLight(0xffffff,0x8a8f8c,0.85));const dl=new THREE.DirectionalLight(0xffffff,0.75);dl.position.set(180,320,260);G.scene.add(dl);const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(-200,-120,-100);G.scene.add(dl2);
+  G.root=new THREE.Group();G.scene.add(G.root);
+  G.orb={theta:-0.62,phi:1.05,radius:520,target:new THREE.Vector3(0,20,0)};G.goal=null;
+  const cv=G.r.domElement;let ptrs=new Map(),last=null,pinch=null,moved=0;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY,shift:e.shiftKey||e.button===2};moved=0;G.goal=null;});
+  cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch){G.orb.radius=Math.max(80,Math.min(2000,G.orb.radius*pinch/d));}pinch=d;moved+=5;G.dirty=true;return;}
+    const dx=e.clientX-last.x,dy=e.clientY-last.y;moved+=Math.abs(dx)+Math.abs(dy);last.x=e.clientX;last.y=e.clientY;
+    if(last.shift){const k=G.orb.radius/700;const right=new THREE.Vector3(Math.cos(G.orb.theta),0,-Math.sin(G.orb.theta));G.orb.target.addScaledVector(right,-dx*k);G.orb.target.y+=dy*k;}
+    else{G.orb.theta-=dx*0.008;G.orb.phi=Math.max(0.08,Math.min(Math.PI-0.08,G.orb.phi-dy*0.008));}
+    G.dirty=true;setCamBtn(null);});
+  const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(moved<4&&e.type==='pointerup')pick(e);};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('wheel',e=>{e.preventDefault();G.orb.radius=Math.max(80,Math.min(2000,G.orb.radius*Math.exp(e.deltaY*0.0012)));G.goal=null;G.dirty=true;},{passive:false});
+  new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;G.r.setSize(w,h,false);G.cam.aspect=w/Math.max(1,h);G.cam.updateProjectionMatrix();G.dirty=true;}).observe(stage);
+  G.ray=new THREE.Raycaster();
+  const loop=()=>{requestAnimationFrame(loop);if(G.goal){const o=G.orb,q=G.goal;let done=true;for(const k of ['theta','phi','radius']){const d=q[k]-o[k];if(Math.abs(d)>1e-3){o[k]+=d*0.16;done=false;}}o.target.lerp(q.target,0.16);if(o.target.distanceTo(q.target)>0.05)done=false;if(done)G.goal=null;G.dirty=true;}
+    if(!G.dirty)return;G.dirty=false;const o=G.orb;G.cam.position.set(o.target.x+o.radius*Math.sin(o.phi)*Math.sin(o.theta),o.target.y+o.radius*Math.cos(o.phi),o.target.z+o.radius*Math.sin(o.phi)*Math.cos(o.theta));G.cam.lookAt(o.target);G.r.render(G.scene,G.cam);placeLabels();};
+  loop();
+}
+function pick(e){if(!G.r)return;const rc=G.r.domElement.getBoundingClientRect();const m=new THREE.Vector2(((e.clientX-rc.left)/rc.width)*2-1,-((e.clientY-rc.top)/rc.height)*2+1);G.ray.setFromCamera(m,G.cam);const hit=G.ray.intersectObjects(G.root.children,true).find(h=>h.object.userData.lid);if(hit)selectLayer(hit.object.userData.lid,true);}
+function camPreset(k,instant){if(!G.r)return;setTilt();const tot=Math.max(10,(RES?RES.total:30)+ui.explode*(RES?RES.rows.length:0));const tgt=new THREE.Vector3(0,tot/2,0).applyMatrix4(G.root.matrixWorld);const mob=window.innerWidth<600;const big=S.mode==='roof'?1.2:1;
+  const P={iso:{theta:-0.62,phi:1.08,radius:(mob?560:470)*big},sec:{theta:0.0001,phi:Math.PI/2-0.02,radius:Math.max(mob?520:330,tot*7)},top:{theta:-0.35,phi:0.42,radius:mob?560:470},bot:{theta:-0.35,phi:Math.PI-0.5,radius:mob?560:470}}[k];
+  const g={...P,target:tgt};
+  if(instant){Object.assign(G.orb,{theta:g.theta,phi:g.phi,radius:g.radius});G.orb.target.copy(g.target);G.dirty=true;}else G.goal=g;setCamBtn(k);ui.cam=k;}
+function setCamBtn(k){document.querySelectorAll('#cams button').forEach(b=>b.classList.toggle('on',b.dataset.cam===k));}
+document.querySelectorAll('#cams button').forEach(b=>b.addEventListener('click',()=>camPreset(b.dataset.cam)));
+$('#explode').addEventListener('input',e=>{ui.explode=+e.target.value;build3D();});
+$('#xray').addEventListener('change',e=>{ui.xray=e.target.checked;build3D();});
+$('#labels').addEventListener('change',e=>{ui.labels=e.target.checked;build3D();});
+$('#dewp').addEventListener('change',e=>{ui.dew=e.target.checked;build3D();});
+
+const matCache={};
+function mat(color,o={}){const sel=o.sel?1:0,tr=o.op!=null&&o.op<1?o.op:1;const k=color+'|'+sel+'|'+tr+'|'+(o.side||'');if(matCache[k])return matCache[k];
+  const m=new THREE.MeshStandardMaterial({color,roughness:o.rough??0.85,metalness:o.metal??0,transparent:tr<1,opacity:tr,depthWrite:tr>=1,side:o.side==='double'?THREE.DoubleSide:THREE.FrontSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+  if(sel){m.emissive=new THREE.Color(0x0e6a6b);m.emissiveIntensity=0.45;}return matCache[k]=m;}
+const edgeMat={};function emat(op){return edgeMat[op]||(edgeMat[op]=new THREE.LineBasicMaterial({color:0x2a2f2c,transparent:true,opacity:op}));}
+function box(x0,x1,y0,y1,z0,z1,m,lid,edge=0.28){if(x1-x0<0.05||y1-y0<0.01||z1-z0<0.05)return;const geo=new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0);const me=new THREE.Mesh(geo,m);me.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);me.userData.lid=lid;G.root.add(me);
+  if(edge){const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),emat(edge));e.position.copy(me.position);G.root.add(e);}}
+function tiles(x0,x1,z0,z1,y0,y1,tw,tl,ox,oz,m,lid,ed){const gp=0.35;for(let x=x0-((ox%tw)+tw)%tw;x<x1;x+=tw){for(let z=z0-((oz%tl)+tl)%tl;z<z1;z+=tl){const a=Math.max(x0,x+gp/2),b=Math.min(x1,x+tw-gp/2),c=Math.max(z0,z+gp/2),d=Math.min(z1,z+tl-gp/2);if(b>a&&d>c)box(a,b,y0,y1,c,d,m,lid,ed);}}}
+function beamsPos(span,sp){const a=[];const n=Math.floor(span/2/sp);for(let k=-n;k<=n;k++)a.push(k*sp);return a;}
+function build3D(){
+  setTilt();if($('#cap'))$('#cap').textContent=`Wycinek ${W3} × ${D3} cm${S.mode==='roof'?`, połać ${fmt(S.C.alpha,0)}°`:''} · przeciągnij, aby obrócić · kółko / dwa palce: zoom · Shift: przesuń`;
+  if(!G.r||!RES)return;
+  while(G.root.children.length){const c=G.root.children.pop();c.geometry&&c.geometry.dispose();}
+  const rows=RES.rows;const X0=-W3/2,X1=W3/2,Z0=-D3/2,Z1=D3/2;const ex=ui.explode;
+  const off=i=>i*ex;G.labels=[];
+  const woolOp=ui.xray?0.22:1;
+  rows.forEach((r,i)=>{const l=r.L,M=MAT[l.type];const y0=r.y0+off(i),y1=r.y1+off(i);const sel=ui.sel===l.id;const lid=l.id;
+    r._y0=y0;r._y1=y1;
+    if(M.kind==='ins'){const m=mat(M.color,{sel,op:woolOp});
+      if(l.type==='blown')box(X0,X1,y0,y1,Z0,Z1,m,lid,0.25);
+      else{const p=l.pattern||'prosto';if(p==='90')tiles(X0,X1,Z0,Z1,y0,y1,120,60,0,0,m,lid,ui.xray?0.12:0.3);else tiles(X0,X1,Z0,Z1,y0,y1,60,120,p==='mijanka'?30:0,p==='mijanka'?60:0,m,lid,ui.xray?0.12:0.3);}}
+    else if(M.kind==='framed'){const wm=mat(M.color,{sel,rough:0.7});const fillC=l.fill==='blown'?MAT.blown.color:MAT.wool.color;const fm=l.fill==='air'?null:mat(fillC,{sel,op:woolOp});const w=l.woodW;
+      if(l.dir!=='cross'){const xs=beamsPos(W3,l.spacing);xs.forEach(x=>box(x-w/2,x+w/2,y0,y1,Z0,Z1,wm,lid,0.35));
+        if(fm){const edges=[X0,...xs.flatMap(x=>[x-w/2,x+w/2]),X1];for(let k=0;k<edges.length;k+=2){const a=edges[k],b=edges[k+1];if(b-a<1)continue;if(l.fill==='blown')box(a,b,y0,y1,Z0,Z1,fm,lid,0.2);else tiles(a,b,Z0,Z1,y0,y1,b-a+1,120,0,0,fm,lid,ui.xray?0.12:0.3);}}}
+      else{const zs=beamsPos(D3,l.spacing);zs.forEach(z=>box(X0,X1,y0,y1,z-w/2,z+w/2,wm,lid,0.35));
+        if(fm){const edges=[Z0,...zs.flatMap(z=>[z-w/2,z+w/2]),Z1];for(let k=0;k<edges.length;k+=2){const a=edges[k],b=edges[k+1];if(b-a<1)continue;if(l.fill==='blown')box(X0,X1,y0,y1,a,b,fm,lid,0.2);else tiles(X0,X1,a,b,y0,y1,120,b-a+1,0,0,fm,lid,ui.xray?0.12:0.3);}}}}
+    else if(M.kind==='air'){box(X0,X1,y0,y1,Z0,Z1,mat('#bfd0ca',{sel,op:sel?0.22:0.08}),lid,0.18);}
+    else if(M.kind==='grid'){const sm=mat('#b4bdc1',{sel,metal:0.55,rough:0.45});const ph=2.7;
+      if(l.type==='grid2'){[-50,50].forEach(z=>box(X0,X1,y1-ph,y1,z-3,z+3,sm,lid,0.35));beamsPos(W3,50).forEach(x=>box(x-3,x+3,y0,y0+ph,Z0,Z1,sm,lid,0.35));}
+      else beamsPos(D3,50).forEach(z=>box(X0,X1,y0,y1,z-3,z+3,sm,lid,0.35));
+      if(l.fill==='wool')tiles(X0,X1,Z0,Z1,y0+0.05,y1-0.05,60,120,30,0,mat(MAT.wool.color,{sel,op:ui.xray?0.22:0.55}),lid,ui.xray?0.12:0.25);
+      else box(X0,X1,y0,y1,Z0,Z1,mat('#cfd6d9',{op:sel?0.18:0.05}),lid,0);}
+    else if(M.kind==='mem'){const vt=0.45;box(X0,X1,y0-vt/2,y0+vt/2,Z0,Z1,mat(M.color,{sel,op:ui.xray?0.6:1,rough:0.5}),lid,0.35);}
+    else if(M.kind==='board'){const m=mat(M.color,{sel,rough:0.9});
+      if(M.gaps){for(let x=X0;x<X1;x+=17)box(x,Math.min(X1,x+15),y0,y1,Z0,Z1,m,lid,0.35);}
+      else tiles(X0,X1,Z0,Z1,y0,y1,120,260,0,i%2?60:0,m,lid,0.35);}
+    // instalacje w warstwie
+    for(const it of (l.items||[])){const K=ITEM[it.kind];const rad=it.d/20;const yc=y0+it.h;const pm=mat(K.color,{sel:false,rough:K.duct?0.6:0.5});
+      for(let k=0;k<it.count;k++){const o=(k-(it.count-1)/2)*it.gap;let geo,me;
+        if(it.dir==='cross'){geo=new THREE.CylinderGeometry(rad,rad,W3+0.6,24);geo.rotateZ(Math.PI/2);me=new THREE.Mesh(geo,pm);me.position.set(0,yc,Math.max(Z0+rad,Math.min(Z1-rad,o)));}
+        else{geo=new THREE.CylinderGeometry(rad,rad,D3+0.6,28);geo.rotateX(Math.PI/2);me=new THREE.Mesh(geo,pm);me.position.set(Math.max(X0+rad,Math.min(X1-rad,o)),yc,0);}
+        me.userData.lid=lid;G.root.add(me);
+        if(K.duct&&rad>2&&it.dir!=='cross'){const ring=new THREE.Mesh(new THREE.CircleGeometry(rad*0.86,28),mat('#3a3d3b',{}));ring.position.set(me.position.x,yc,Z1+0.31);G.root.add(ring);}}}
+    if(ui.labels)G.labels.push({lid,text:`${M.short}`,th:tcm(l.t),p:new THREE.Vector3(X1,(y0+y1)/2,Z1),sel});
+
+  });
+  // wieszaki rusztu do pasów
+  const gi=rows.findIndex(r=>MAT[r.L.type].kind==='grid');const ci=rows.findIndex(r=>r.L.type==='chord');
+  if(S.mode!=='roof'&&gi>=0&&ci>gi){const gr=rows[gi],cr=rows[ci];const yA=gr._y1,yB=cr._y0;const hm=mat('#8e989c',{metal:0.6,rough:0.4});const xs=cr.L.dir!=='cross'?beamsPos(W3,cr.L.spacing):[0];const zs=gr.L.type==='grid2'?[-50,50]:beamsPos(D3,50);
+    const mem=rows.find((r,i)=>i>gi&&i<ci&&MAT[r.L.type].kind==='mem'&&r.p.sd>=2);
+    xs.forEach(x=>zs.forEach(z=>{box(x-0.8,x+0.8,yA,yB,z-1.2,z+1.2,hm,null,0);if(mem){const t=new THREE.Mesh(new THREE.TorusGeometry(2.2,0.45,8,20),mat('#d2452c',{}));t.rotateX(Math.PI/2);t.position.set(x,mem._y0,z);G.root.add(t);}}));}
+  // płaszczyzna punktu rosy
+  if(ui.dew&&RES.yDew!=null&&rows.length){const yd=RES.yDew;let i=rows.findIndex(r=>yd<=r.y1+1e-9);if(i<0)i=rows.length-1;const yy=yd+off(i);
+    const pg=new THREE.PlaneGeometry(W3+24,D3+24);pg.rotateX(-Math.PI/2);
+    const pm=new THREE.MeshBasicMaterial({color:0x8b5cf6,transparent:true,opacity:0.2,side:THREE.DoubleSide,depthWrite:false});
+    const pl=new THREE.Mesh(pg,pm);pl.position.y=yy;pl.renderOrder=10;G.root.add(pl);
+    const pe=new THREE.LineSegments(new THREE.EdgesGeometry(pg),new THREE.LineBasicMaterial({color:0x7c3aed,transparent:true,opacity:0.75}));pe.position.y=yy;pe.renderOrder=11;G.root.add(pe);
+    G.labels.push({lid:null,text:'punkt rosy',th:`${fmt(RES.dewIn,1)} °C`,p:new THREE.Vector3(X0-12,yy,Z1+12),dew:true});}
+  // wycinek: obwiednia
+  const tot=rows.length?rows[rows.length-1]._y1:1;
+  const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W3,tot,D3)),new THREE.LineDashedMaterial({color:0x6f7a75,dashSize:3,gapSize:3,transparent:true,opacity:0.5}));outline.computeLineDistances();outline.position.set(0,tot/2,0);G.root.add(outline);
+  G.dirty=true;
+}
+function placeLabels(){const host=$('#lbls');if(!host)return;if(!G.labels){host.innerHTML='';return;}
+  const w=host.clientWidth,h=host.clientHeight;const pts=G.labels.map(L=>{const v=L.p.clone().applyMatrix4(G.root.matrixWorld).project(G.cam);return {...L,x:(v.x+1)/2*w,y:(1-v.y)/2*h,vis:v.z<1};}).filter(p=>p.vis).sort((a,b)=>a.y-b.y);
+  let last=-1e9;const out=[];for(const p of pts){if(p.dew){out.push(p);continue;}if(p.y-last<17&&!p.sel)continue;last=p.y;out.push(p);}
+  host.innerHTML=out.map(p=>`<div class="lb${p.sel?' sel':''}${p.dew?' dew':''}" style="left:${Math.min(w-140,p.x).toFixed(0)}px;top:${p.y.toFixed(0)}px">${esc(p.text)} <b>${p.th}</b></div>`).join('');}
+
+/* ---------- kopiowanie ---------- */
+$('#copy').addEventListener('click',()=>{const R=RES,C=S.C;const b=R.barrier;
+  const lines=[`Kalkulator termiczny stropu – ${V().name}`,(S.mode==='roof'?'Warstwy od zewnątrz:':'Warstwy od strychu:'),...V().layers.map(l=>{const M=MAT[l.type];let s=`• ${M.label} – ${tcm(l.t)}`;const sub=subline(l);if(sub)s+=` (${sub})`;(l.items||[]).forEach(it=>{s+=`\n   – ${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`;});return s;}),
+   ``,`Warunki: pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} %, ${S.mode==='roof'?'na zewnątrz':'strych'} ${fmt(C.te,0)} °C`,
+   `U = ${fmt(R.U,3)} W/m²K (WT ≤ 0,15)${R.status.U==='ok'?' – OK':' – za dużo'}`,
+   b?`Folia: ${fmt(b.theta,1)} °C, punkt rosy ${fmt(R.dewIn,1)} °C – ${b.status==='ok'?'OK':b.status==='warn'?'na granicy':'za zimno'}`:'Brak paroizolacji',
+   `Kondensacja: ${R.cond?`tak, w warstwie ${R.cond.layer} (~${fmt(R.cond.gday||0,0)} g/m² dziennie)`:'brak'}`,
+   ...R.pipes.map(p=>`${p.K.label} Ø${p.it.d}: ${fmt(p.tTop,1)} °C nad rurą, ${fmt(p.insAbove,0)} cm izolacji nad nią`),
+   R.roof?`Kąt ${fmt(C.alpha,0)}°, skos przy ściance ${fmt(R.roof.hk,1)} cm, do 2,2 m: ${fmt(R.roof.d220,0)} cm od ścianki`:`Wylewka → pas ${fmt(C.hScreed,1)} cm, podłoga ${fmt(C.floorT,1)} cm, pokój w świetle ${fmt(R.clear,1)} cm`,`Ciężar warstw ${fmt(R.kg,1)} kg/m²`];
+  const txt=lines.join('\n');
+  const ok=()=>toast('Skopiowano zestawienie');
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){toast('Nie udało się skopiować');}ta.remove();};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,fb);else fb();});
+
+/* ---------- odświeżanie ---------- */
+let raf=0;
+function refresh(recam){
+  RES=calc(V());
+  renderTiles(RES);
+  $('#h0out').textContent=`${fmt(RES.h0,1)} cm`;$('#clearout').textContent=`${fmt(RES.clear,1)} cm`;
+  if(RES.roof){$('#hkout').textContent=`${fmt(RES.roof.hk,1)} cm`;$('#d140out').textContent=`${fmt(RES.roof.d140,0)} cm`;$('#d220out').textContent=`${fmt(RES.roof.d220,0)} cm`;}
+  const det=$('#details');const ae=document.activeElement;const keep=ae&&det.contains(ae)&&ae.dataset&&ae.dataset.c?ae.id:null;const st=det.scrollTop;
+  if(!keep)renderDetails();else{document.querySelectorAll('#details [data-c]').forEach(i=>{if(i!==ae)i.value=S.C[i.dataset.c];});const t=det.scrollTop;renderDetailsPartial();}
+  renderSection();
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{build3D();if(recam)camPreset(ui.cam,false);});
+  save();
+}
+function renderDetailsPartial(){const ae=document.activeElement;const id=ae.id,ss=ae.selectionStart,se=ae.selectionEnd;const open=$('#details details.adv')?.open;renderDetails();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(ss,se);}catch(e){}}const d=$('#details details.adv');if(d&&open)d.open=true;}
+new ResizeObserver(()=>{if(RES&&!ui.drag)renderSection();}).observe($('#section'));
+
+/* ---------- wyjaśnienia ---------- */
+const INFO={
+  przekroj:['Jak czytać przekrój','Pasek po lewej to przegroda w prawdziwej skali: góra to strych, dół pokój, a 1 cm warstwy ma tyle samo pikseli w pionie i w poziomie, więc kanały i pasy wiązarów mają realne proporcje. Linijka podaje wysokość każdej granicy warstw nad posadzką gotową. Oba wykresy po prawej mają tę samą skalę pionową: punkt wykresu odpowiada miejscu w przegrodzie na tej samej wysokości.'],
+  temp:['Temperatura w przegrodzie','Linia pokazuje temperaturę w każdym miejscu przegrody przy warunkach z panelu po lewej. Spadek temperatury w warstwie jest proporcjonalny do jej oporu cieplnego: wełna przejmuje prawie całą różnicę, płyty i folia prawie nic. Dlatego w wełnie linia jest pochyła, a w płytach niemal pionowa. Romby oznaczają temperaturę nad kanałami rekuperacji.'],
+  dew:['Punkt rosy','Temperatura, przy której powietrze z pokoju zaczyna oddawać wodę. Zależy od temperatury i wilgotności w pokoju: przy 20 °C i 50 % to ok. 9,3 °C. Każde miejsce w przegrodzie zimniejsze od punktu rosy, do którego dociera powietrze z pokoju, będzie mokre. Fioletowa linia pozioma pokazuje, na jakiej wysokości przegroda ma właśnie tę temperaturę; paroizolacja powinna leżeć poniżej niej.'],
+  psat:['Ciśnienie nasycenia','Największa ilość pary wodnej, jaką powietrze może utrzymać w danej temperaturze. Im zimniej, tym mniej, dlatego linia kropkowana spada w stronę strychu.'],
+  p:['Ciśnienie pary','Ile pary rzeczywiście jest w danym miejscu. Para przenika z ciepłego, wilgotnego pokoju w stronę strychu, a każda warstwa ją hamuje proporcjonalnie do swojego sd (oporu dyfuzyjnego, wyrażonego w metrach równoważnej warstwy powietrza). Folia PE (sd ok. 75 m) zatrzymuje prawie całą parę, więc za nią linia spada niemal do poziomu strychu.'],
+  kond:['Kondensacja (metoda Glasera)','Gdy linia ciśnienia pary przechodzi nad linię nasycenia, para nie mieści się w powietrzu i skrapla się. Na czerwono zaznaczone są takie odcinki. Liczone dla jednego stanu (np. mrozu projektowego), więc pokazuje najgorszy dzień, a nie roczny bilans wody. Wynik w g/m² na dobę to szacunek przy tych warunkach.'],
+  U:['Współczynnik U','Ile watów ucieka przez 1 m² przegrody przy różnicy temperatur 1 °C. Im mniej, tym lepiej. Warunki techniczne (od 2021 r.) wymagają dla stropu pod nieogrzewanym strychem U ≤ 0,15 W/m²K. Drewno pasów i legarów jest uśrednione z wełną według udziału w powierzchni, co jest metodą uproszczoną.'],
+  dUg:['Korekta na szczeliny ΔUg','Spoiny między matami w jednej warstwie, albo w kilku warstwach ułożonych dokładnie jedna na drugiej, przechodzą na wylot i pogarszają U (PN-EN ISO 6946, zał. F). Druga warstwa na mijankę lub pod 90° zakrywa spoiny dolnej i korekta znika.'],
+  bar:['Paroizolacja','Za paroizolację uznawana jest warstwa o największym oporze dyfuzyjnym (sd ≥ 2 m). Musi być cieplejsza niż punkt rosy powietrza w pokoju, inaczej para skropli się tuż pod nią. Praktyczna zasada: od strony pokoju pod folią najwyżej ok. 1/3 izolacji.'],
+  pipes:['Kanały i instalacje','Dla każdego kanału liczona jest temperatura przegrody na wysokości wierzchu rury. Kanał wywiewny niesie ciepłe, wilgotne powietrze z łazienek: przy postoju rekuperatora ostygnie ono do tej temperatury, a jeśli to mniej niż jego punkt rosy, woda skropli się w środku kanału. Zimne kanały (czerpnia, wyrzutnia) po ciepłej stronie folii potrzebują otuliny paroszczelnej.'],
+  height:['Wysokość pomieszczenia','Pokój w świetle = (wylewka → spód pasa wiązara) − podłoga docelowa − wszystko, co wisi pod pasem: strefa instalacyjna, ruszt, płyty. Punktem odniesienia jest spód najniższej warstwy „Pasy dolne wiązarów”. Linijka przy przekroju podaje wysokości nad posadzką gotową.'],
+  roof:['Skos i ścianka kolankowa','Wysokość skosu przy ściance = (wylewka → spód krokwi przy ściance) − podłoga − zabudowa pod krokwią przeliczona na pion (grubość ÷ cos kąta dachu). Odległości do 1,4 m i 2,2 m pokazują, ile pokoju zabiera skos. Wg PN-ISO 9836 powierzchnia o wysokości co najmniej 2,2 m liczy się w 100 %, od 1,4 do 2,2 m w 50 %, a niższa nie wchodzi do powierzchni użytkowej. Przekrój i obliczenia U są prostopadłe do połaci; pokrycie i łaty nad szczeliną wentylacyjną pomija się.'],
+  dewplane:['Płaszczyzna punktu rosy','Fioletowa płaszczyzna pokazuje wysokość w przegrodzie, na której temperatura spada do punktu rosy powietrza z pokoju. Poniżej jest cieplej, powyżej zimniej. Paroizolacja powinna leżeć poniżej tej płaszczyzny, a kanały z wilgotnym powietrzem najlepiej też.'],
+};
+let popEl=null,popBtn=null;
+function closeInfo(){if(popEl){popEl.remove();popEl=null;}if(popBtn){popBtn.classList&&popBtn.classList.remove('on');popBtn=null;}}
+function openInfo(btn){const k=btn.getAttribute('data-info');if(popBtn===btn){closeInfo();return;}closeInfo();const t=INFO[k];if(!t)return;
+  popEl=document.createElement('div');popEl.className='pop';popEl.setAttribute('role','dialog');popEl.innerHTML=`<b>${t[0]}</b>${t[1]}`;document.body.appendChild(popEl);
+  const r=btn.getBoundingClientRect();const w=popEl.offsetWidth,h=popEl.offsetHeight;const vw=document.documentElement.clientWidth;
+  let x=r.left+r.width/2-w/2;x=Math.max(16,Math.min(vw-16-w,x));let y=r.bottom+8;if(y+h>window.innerHeight-12&&r.top-h-8>12)y=r.top-h-8;
+  popEl.style.left=(x+window.scrollX)+'px';popEl.style.top=(y+window.scrollY)+'px';popBtn=btn;btn.classList&&btn.classList.add('on');}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-info]');if(b){e.preventDefault();e.stopPropagation();openInfo(b);return;}if(popEl&&!e.target.closest('.pop'))closeInfo();},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeInfo();});
+window.addEventListener('resize',closeInfo);
+
+/* ---------- eksport PDF ---------- */
+const PRINT={'--panel':'#ffffff','--ink':'#1a211f','--muted':'#5a6561','--line':'#d2d8d4','--line2':'#b6c0bb','--sunk':'#eef1ef','--accent':'#0e6a6b','--cold':'#2c6cb0','--warm':'#c24f2c','--dew':'#7a4db0','--vapor':'#3f7f5f','--ok':'#2b774a','--warn':'#9a5f0c','--bad':'#b0251c','--ok-bg':'#dff0e5','--warn-bg':'#f7ead0','--bad-bg':'#f7dfdc'};
+const PC=k=>PRINT[k];const STC={ok:PC('--ok'),warn:PC('--warn'),bad:PC('--bad')};
+const FN=(w,s)=>`${w} ${s}px Archivo, system-ui, sans-serif`, FM=(w,s)=>`${w} ${s}px "IBM Plex Mono", ui-monospace, monospace`;
+let DL=null;
+const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==='function');
+if(!IN_CLAUDE)$('#pdf').hidden=false;
+(async()=>{try{if(IN_CLAUDE){DL=await window.claude.use('downloads');if(DL)$('#pdf').hidden=false;}}catch(e){}})();
+function capture3D(key,w,h){
+  if(!G.r)return null;
+  if(!G.xr){G.xr=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});G.xr.setPixelRatio(1);}
+  G.xr.setSize(w,h,false);const cam=new THREE.PerspectiveCamera(30,w/h,1,6000);
+  const tot=Math.max(10,RES.total+ui.explode*RES.rows.length);
+  const P=key==='sec'?{theta:0.0001,phi:Math.PI/2-0.02,radius:Math.max(380,tot*7)}:{theta:-0.62,phi:1.08,radius:520};
+  setTilt();const t=new THREE.Vector3(0,tot/2,0).applyMatrix4(G.root.matrixWorld);if(S.mode==='roof')P.radius*=1.2;
+  cam.position.set(t.x+P.radius*Math.sin(P.phi)*Math.sin(P.theta),t.y+P.radius*Math.cos(P.phi),t.z+P.radius*Math.sin(P.phi)*Math.cos(P.theta));cam.lookAt(t);cam.updateMatrixWorld();
+  G.xr.render(G.scene,cam);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#f2f4f2';x.fillRect(0,0,w,h);x.drawImage(G.xr.domElement,0,0);
+  const pts=(G.labels||[]).map(L=>{const v=L.p.clone().applyMatrix4(G.root.matrixWorld).project(cam);return {...L,x:(v.x+1)/2*w,y:(1-v.y)/2*h,vis:v.z<1};}).filter(p=>p.vis).sort((a,b)=>a.y-b.y);
+  let last=-1e9;x.textBaseline='middle';
+  for(const p of pts){if(!p.dew&&p.y-last<26)continue;if(!p.dew)last=p.y;
+    x.font=FN(500,17);const t1=p.text+' ';const w1=x.measureText(t1).width;x.font=FM(500,16);const w2=x.measureText(p.th).width;
+    const bw=w1+w2+16,bx=Math.min(w-bw-4,p.x+10),by=p.y-13;
+    x.fillStyle='rgba(255,255,255,.9)';x.strokeStyle=p.dew?PC('--dew'):'#c9d0cc';x.lineWidth=1.5;rr(x,bx,by,bw,26,5);x.fill();x.stroke();
+    x.fillStyle=p.dew?PC('--dew'):PC('--ink');x.font=FN(500,17);x.fillText(t1,bx+8,p.y+1);x.font=FM(500,16);x.fillText(p.th,bx+8+w1,p.y+1);}
+  x.textBaseline='alphabetic';return c;
+}
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
+function wrapLines(x,text,maxW){const words=String(text).split(' ');const out=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(x.measureText(t).width>maxW&&cur){out.push(cur);cur=w;}else cur=t;}if(cur)out.push(cur);return out;}
+function fitText(x,text,maxW){if(x.measureText(text).width<=maxW)return text;let t=text;while(t.length>1&&x.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
+function sectionImage(){const o=sectionSVG(900,470,true);const svg=o.svg.replace(/var\((--[a-z0-9-]+)\)/g,(m,k)=>PRINT[k]||'#000');
+  return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
+function buildPages(views,sec){
+  const R=RES,C=S.C;const PW=1654,PH=2339,M=78,W=PW-2*M,BOT=PH-M-44;const pages=[];let x,y;
+  const newPage=()=>{const c=document.createElement('canvas');c.width=PW;c.height=PH;x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pages.push(c);y=M;};
+  newPage();
+  const date=new Date().toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'});
+  const head=(t,xx,yy)=>{x.fillStyle=PC('--ink');x.font=FN(600,25);x.fillText(t,xx,yy+22);return 40;};
+  const blocks=[];
+  // nagłówek
+  blocks.push({h:()=>118,d:(X,Y)=>{x.fillStyle=PC('--ink');x.font=FN(700,46);x.fillText('Kalkulator termiczny stropu',X,Y+44);x.font=FN(400,20);x.fillStyle=PC('--muted');x.textAlign='right';x.fillText(date,X+W,Y+20);x.fillText(S.mode==='roof'?'przegroda: skos poddasza użytkowego':'przegroda: piętro / nieogrzewany strych',X+W,Y+46);x.textAlign='left';
+    x.fillStyle=PC('--accent');x.font=FN(600,26);x.fillText(fitText(x,V().name,W),X,Y+82);
+    x.fillStyle=PC('--muted');x.font=FN(400,20);x.fillText(S.mode==='roof'?`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · na zewnątrz ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · dach ${fmt(C.alpha,0)}° · wylewka → krokiew przy ściance ${fmt(C.hKnee,0)} cm`:`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · strych ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · wylewka → pas ${fmt(C.hScreed,1)} cm · podłoga ${fmt(C.floorT,1)} cm`,X,Y+110);
+    x.strokeStyle=PC('--line');x.lineWidth=2;x.beginPath();x.moveTo(X,Y+124);x.lineTo(X+W,Y+124);x.stroke();}});
+  // kafelki
+  blocks.push({h:()=>132,d:(X,Y)=>{const td=tileData(R);const g=14,tw=(W-g*5)/6;td.forEach((t,i)=>{const bx=X+i*(tw+g);x.fillStyle='#fafbfa';x.strokeStyle=PC('--line');x.lineWidth=1.5;rr(x,bx,Y,tw,124,10);x.fill();x.stroke();x.fillStyle=STC[t.cls];x.fillRect(bx,Y+10,6,104);
+    x.fillStyle=PC('--muted');x.font=FN(400,18);x.fillText(fitText(x,t.k,tw-28),bx+18,Y+30);
+    x.fillStyle=PC('--ink');x.font=FM(500,34);x.fillText(t.v,bx+18,Y+72);const vw=x.measureText(t.v).width;x.font=FN(400,17);x.fillStyle=PC('--muted');x.fillText(fitText(x,t.u,tw-vw-30),bx+24+vw,Y+72);
+    x.fillStyle=STC[t.cls];x.font=FN(500,17);x.fillText(fitText(x,t.s,tw-28),bx+18,Y+104);});}});
+  // widoki 3D
+  if(views&&views.length){const vw=(W-24)/2,vh=views[0].height*vw/views[0].width;
+    blocks.push({h:()=>vh+40,d:(X,Y)=>{views.forEach((c,i)=>{const bx=X+i*(vw+24);x.fillStyle=PC('--ink');x.font=FN(600,22);x.fillText(i?'Widok od czoła wycinka (przekrój 3D)':'Widok izometryczny',bx,Y+22);x.drawImage(c,bx,Y+34,vw,vh);x.strokeStyle=PC('--line');x.lineWidth=1.5;x.strokeRect(bx,Y+34,vw,vh);});}});}
+  // przekrój 2D
+  if(sec){const sh=sec.height*W/sec.width;blocks.push({h:()=>sh+44,d:(X,Y)=>{head('Przekrój w skali z profilem temperatury i ciśnienia pary',X,Y);
+    const lg=[['temperatura',PC('--warm'),[]],['punkt rosy',PC('--dew'),[8,5]],['nasycenie',PC('--muted'),[3,4]],['para',PC('--vapor'),[]],['kondensacja',PC('--bad'),[]]];x.font=FN(400,17);let lx=X+W;for(let i=lg.length-1;i>=0;i--){const [t,c,d]=lg[i];const tw=x.measureText(t).width;lx-=tw;x.fillStyle=PC('--muted');x.fillText(t,lx,Y+20);lx-=34;x.strokeStyle=c;x.lineWidth=i===4?6:3;x.setLineDash(d);x.beginPath();x.moveTo(lx,Y+14);x.lineTo(lx+26,Y+14);x.stroke();x.setLineDash([]);lx-=22;}
+    x.drawImage(sec,X,Y+40,W,sh);}});}
+  // warstwy + wyniki
+  const colW=(W-40)/2;
+  const layerRows=()=>V().layers.map(l=>({l,M:MAT[l.type],sub:subline(l),items:(l.items||[]).map(it=>`${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`)}));
+  const kvs=()=>{const b=R.barrier;const a=[['Współczynnik U',`${fmt(R.U,3)} W/m²K`,R.status.U],['U bez korekty / ΔUg',`${fmt(R.U0,3)} / ${fmt(R.dUg,4)}`],['Opór całkowity RT',`${fmt(R.RT,2)} m²K/W`],['Izolacja łącznie',`${fmt(R.wool,0)} cm`],
+    ['Temperatura na folii',b?`${fmt(b.theta,1)} °C`:'brak',R.status.bar],['Punkt rosy w pokoju',`${fmt(R.dewIn,1)} °C`],['Izolacji pod folią',b?`${fmt(b.ratio*100,0)} %`:'–'],['Kondensacja (Glaser)',R.cond?`${fmt(R.cond.gday||0,0)} g/m²·doba`:'brak',R.status.cond],
+    ['Temp. powierzchni sufitu',`${fmt(R.thetaSi,1)} °C`],[`Strata przez ${fmt(C.area,0)} m²`,`${fmt(R.P,0)} W`],['Sezon grzewczy',`${fmt(R.kWh,0)} kWh/rok`],['Posadzka gotowa → pas',`${fmt(R.h0,1)} cm`],['Zabudowa pod pasem',`${fmt(R.yAnchor,1)} cm`],['Pokój w świetle',`${fmt(R.clear,1)} cm`,R.status.h],['Ciężar warstw',`${fmt(R.kg,1)} kg/m² (limit ${fmt(C.loadMax,0)})`,R.status.load]];
+    if(R.roof)a.splice(11,4,['Kąt dachu',`${fmt(C.alpha,0)}°`],['Zabudowa pod krokwią',`${fmt(R.yAnchor,1)} cm`],['Skos przy ściance',`${fmt(R.roof.hk,1)} cm`],['Od ścianki do 1,4 / 2,2 m',`${fmt(R.roof.d140,0)} / ${fmt(R.roof.d220,0)} cm`]);
+    if(R.hangers)a.push(['Wieszaki rusztu',`${fmt(R.hangers.perM2,1)} szt./m²${R.hangers.pierce?', przez folię':', nad folią'}`,R.hangers.pierce?'warn':null]);return a;};
+  const layH=()=>40+layerRows().reduce((s,r)=>s+58+r.items.length*24,0);
+  const kvH=()=>40+kvs().length*31;
+  blocks.push({h:()=>Math.max(layH(),kvH()),d:(X,Y)=>{
+    head(S.mode==='roof'?'Warstwy od zewnątrz do pokoju':'Warstwy od strychu do pokoju',X,Y);let yy=Y+44;
+    for(const r of layerRows()){x.fillStyle=r.M.color;x.fillRect(X,yy,12,44);x.strokeStyle='rgba(0,0,0,.2)';x.lineWidth=1;x.strokeRect(X,yy,12,44);
+      x.fillStyle=PC('--ink');x.font=FN(500,20);const tt=tcm(r.l.t);x.font=FM(500,19);const tw=x.measureText(tt).width;x.fillText(tt,X+colW-tw,yy+18);
+      x.font=FN(500,20);x.fillText(fitText(x,r.M.label,colW-tw-40),X+24,yy+18);x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,r.sub,colW-30),X+24,yy+40);yy+=58;
+      for(const it of r.items){x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,'• '+it,colW-40),X+36,yy+4);yy+=24;}}
+    const X2=X+colW+40;head('Wyniki',X2,Y);yy=Y+44;
+    for(const [k,v,st] of kvs()){x.fillStyle=PC('--muted');x.font=FN(400,18.5);x.fillText(k,X2,yy+18);x.font=FM(500,18);const vw=x.measureText(v).width;x.fillStyle=st?STC[st]:PC('--ink');x.fillText(v,X2+colW-vw,yy+18);
+      x.strokeStyle=PC('--line');x.lineWidth=1;x.beginPath();x.moveTo(X2,yy+27);x.lineTo(X2+colW,yy+27);x.stroke();yy+=31;}
+  }});
+  // kanały + porównanie
+  const pipeLines=()=>{x.font=FN(400,16.5);return R.pipes.map(p=>({p,lines:p.msgs.flatMap(m=>wrapLines(x,m,colW-30))}));};
+  const all=modeVariants().map(v=>({v,r:calc(v)}));
+  blocks.push({h:()=>{const pl=pipeLines();const h1=40+(pl.length?pl.reduce((s,q)=>s+62+q.lines.length*22,0):30);const h2=40+36+all.length*34;return Math.max(h1,h2);},d:(X,Y)=>{
+    head('Kanały i instalacje',X,Y);let yy=Y+44;const pl=pipeLines();
+    if(!pl.length){x.fillStyle=PC('--muted');x.font=FN(400,18);x.fillText('Brak instalacji w przekroju.',X,yy+18);}
+    for(const q of pl){const p=q.p;x.fillStyle=PC('--ink');x.font=FN(600,19);x.fillText(`${p.K.label} Ø${p.it.d} · ${p.layer}`,X,yy+18);const st=LBL[p.lvl];x.font=FN(600,16);const sw=x.measureText(st).width;x.fillStyle=STC[p.lvl];x.fillText(st,X+colW-sw,yy+18);
+      x.fillStyle=PC('--ink');x.font=FM(400,16.5);x.fillText(`wierzch ${fmt(p.top,1)} cm · ${fmt(p.tTop,1)} °C · izolacji nad ${fmt(p.insAbove,1)} cm`,X,yy+44);yy+=62;
+      x.fillStyle=PC('--muted');x.font=FN(400,16.5);for(const ln of q.lines){x.fillText(ln,X+10,yy);yy+=22;}}
+    const X2=X+colW+40;head('Porównanie wariantów',X2,Y);yy=Y+44;const cols=[0,0.56,0.71,0.86,1];const hdr=['Wariant','U','Folia °C','Rosa',S.mode==='roof'?'Skos':'Pokój'];
+    x.font=FN(500,16.5);x.fillStyle=PC('--muted');hdr.forEach((h,i)=>{if(i===0)x.fillText(h,X2,yy+20);else{const w=x.measureText(h).width;x.fillText(h,X2+colW*cols[i+1]-w-6,yy+20);}});yy+=36;
+    for(const {v,r} of all){if(v.id===S.active){x.fillStyle=PC('--sunk');x.fillRect(X2,yy-4,colW,34);}
+      x.fillStyle=PC('--ink');x.font=FN(v.id===S.active?600:400,17.5);x.fillText(fitText(x,v.name,colW*0.55-10),X2+6,yy+18);
+      const vals=[fmt(r.U,3),r.barrier?fmt(r.barrier.theta,1):'–',r.cond?'tak':'nie',r.roof?fmt(r.roof.hk,0):fmt(r.clear,0)];x.font=FM(500,17);
+      vals.forEach((t,i)=>{x.fillStyle=i===2?(r.cond?STC.bad:STC.ok):PC('--ink');const w=x.measureText(t).width;x.fillText(t,X2+colW*cols[i+2]-w-6,yy+18);});
+      x.strokeStyle=PC('--line');x.lineWidth=1;x.beginPath();x.moveTo(X2,yy+30);x.lineTo(X2+colW,yy+30);x.stroke();yy+=34;}
+  }});
+  // uwagi
+  const note='Obliczenia uproszczone: PN-EN ISO 6946 (warstwy niejednorodne uśrednione powierzchniowo, korekta na szczeliny wg zał. F), kondensacja metodą Glasera dla warunków chwilowych wg PN-EN ISO 13788 (bez bilansu rocznego). Wyniki pomocnicze; decyzje wykonawcze skonsultuj z projektantem.';
+  blocks.push({h:()=>{x.font=FN(400,16.5);return wrapLines(x,note,W).length*23+6;},d:(X,Y)=>{x.font=FN(400,16.5);x.fillStyle=PC('--muted');wrapLines(x,note,W).forEach((ln,i)=>x.fillText(ln,X,Y+18+i*23));}});
+  for(const b of blocks){const h=b.h();if(y+h>BOT&&y>M+1)newPage();b.d(M,y);y+=h+30;}
+  pages.forEach((c,i)=>{const g=c.getContext('2d');g.fillStyle=PC('--muted');g.font=FN(400,17);g.textAlign='left';g.fillText(`Kalkulator termiczny stropu · ${V().name}`,M,PH-M+24);g.textAlign='right';g.fillText(`${date} · strona ${i+1} z ${pages.length}`,PW-M,PH-M+24);g.textAlign='left';});
+  return pages;
+}
+async function exportPDF(){
+  const btn=$('#pdf');
+  if(!DL&&IN_CLAUDE){toast('Zapis plików nie jest dostępny w tym widoku');return;}
+  if(!window.jspdf){toast('Nie udało się wczytać modułu PDF. Odśwież stronę.');return;}
+  btn.disabled=true;btn.textContent='Tworzę PDF…';
+  try{
+    try{await document.fonts.ready;}catch(e){}
+    let views=null;
+    if(G.r){const ps=ui.sel,pl=ui.labels;ui.sel=null;ui.labels=true;build3D();const vw=Math.round((1654-2*78-24)/2);const vh=Math.round(vw*0.58);views=[capture3D('iso',vw,vh),capture3D('sec',vw,vh)].filter(Boolean);ui.sel=ps;ui.labels=pl;build3D();}
+    let sec=null;try{sec=await sectionImage();}catch(e){sec=null;}
+    let pages=buildPages(views,sec);
+    try{pages.forEach(p=>p.toDataURL('image/jpeg',0.3));}catch(e){pages=buildPages(views,null);}
+    const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+    pages.forEach((c,i)=>{if(i)doc.addPage();doc.addImage(c.toDataURL('image/jpeg',0.9),'JPEG',0,0,210,297);});
+    const blob=doc.output('blob');
+    const name=`Kalkulator termiczny stropu - ${V().name}.pdf`.replace(/[\\/:*?"<>|]/g,'-');
+    if(DL)await DL.save({filename:name,data:blob});
+    else{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);}
+    toast(pages.length>1?`Zapisano PDF (${pages.length} strony)`:'Zapisano PDF');
+  }catch(e){if(e&&e.code==='declined'){}else if(e&&e.code==='rate_limited')toast('Okno zapisu jest już otwarte');else toast('Nie udało się zapisać PDF');}
+  finally{btn.disabled=false;btn.textContent='Eksport PDF';}
+}
+$('#pdf').addEventListener('click',exportPDF);
+
+applyMode();renderPalette();bindConds();renderVariants();renderCards();init3D();refresh();camPreset('iso',true);
+</script>
+
+</body>
+</html>
