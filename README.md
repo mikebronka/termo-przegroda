@@ -8,7 +8,7 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 
 ## Dwa tryby
 
-- **Strop pod strychem:** pasy dolne wiązarów, strefa instalacyjna, ruszt CD (pusty lub wypełniony wełną), paroizolacja, płyty GK.
+- **Strop pod strychem:** belki stropu (pasy dolne wiązarów, jętki albo belki stropu drewnianego), strefa instalacyjna, ruszt CD (pusty lub wypełniony wełną), paroizolacja, płyty GK.
 - **Poddasze użytkowe:** krokwie, membrana MWK, skos i ścianka kolankowa.
 
 ## Co liczy
@@ -18,7 +18,8 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 - kondensację metodą Glasera dla warunków chwilowych (PN-EN ISO 13788),
 - temperaturę przy kanałach rekuperacji i peszlach umieszczonych w izolacji,
 - wysokość pomieszczenia w świetle albo wysokość skosu przy ściance i odległość do 1,4 m i 2,2 m (PN-ISO 9836),
-- obciążenie pasa dolnego i straty ciepła.
+- obciążenie belek i straty ciepła,
+- opłacalność dodatkowej warstwy wełny: oszczędność na rachunkach dla wybranego źródła ciepła (pompa ciepła, gaz, prąd, pellet), koszt i czas zwrotu, także przy rosnących cenach energii.
 
 ## Widoki
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Kalkulator przegrody: strop pod nieogrzewanym strychem lub skos poddasza. Warstwy w skali, widok 3D, współczynnik U, punkt rosy, metoda Glasera, kanały rekuperacji, eksport PDF.">
+<meta name="description" content="Kalkulator przegrody: strop pod nieogrzewanym strychem lub skos poddasza. Warstwy w skali, widok 3D, współczynnik U, punkt rosy, metoda Glasera, kanały rekuperacji, opłacalność docieplenia, eksport PDF.">
 <title>Kalkulator termiczny stropu</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -248,12 +248,12 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
     <section class="sec">
       <h2><span class="h2l"><span class="only-flat">Wysokość pomieszczenia</span><span class="only-roof">Skos i ścianka kolankowa</span> <button class="info only-flat" data-info="height" aria-label="Wyjaśnienie">i</button><button class="info only-roof" data-info="roof" aria-label="Wyjaśnienie">i</button></span></h2>
       <div class="grid2">
-        <div class="fld only-flat"><label for="c_hScreed">Wylewka → spód pasa [cm]</label><input id="c_hScreed" type="number" step="0.5" data-c="hScreed"></div>
+        <div class="fld only-flat"><label for="c_hScreed">Wylewka → spód belek [cm]</label><input id="c_hScreed" type="number" step="0.5" data-c="hScreed"></div>
         <div class="fld only-roof"><label for="c_alpha">Kąt dachu [°]</label><input id="c_alpha" type="number" step="1" min="10" max="70" data-c="alpha"></div>
         <div class="fld only-roof"><label for="c_hKnee">Wylewka → spód krokwi przy ściance [cm]</label><input id="c_hKnee" type="number" step="1" data-c="hKnee"></div>
         <div class="fld"><label for="c_floorT">Podłoga docelowa [cm]</label><input id="c_floorT" type="number" step="0.1" min="0" data-c="floorT"></div>
         <div class="fld only-flat"><label for="c_hMin">Min. wysokość pokoju [cm]</label><input id="c_hMin" type="number" step="1" data-c="hMin"></div>
-        <div class="fld only-flat"><label>Posadzka gotowa → pas</label><output id="h0out"></output></div>
+        <div class="fld only-flat"><label>Posadzka gotowa → belki</label><output id="h0out"></output></div>
         <div class="fld only-roof"><label>Skos przy ściance (gotowy)</label><output id="hkout"></output></div>
       </div>
       <p class="hint only-flat">Podłoga docelowa to klej + płytka (albo podkład + panel). Pokój w świetle: <b id="clearout" class="num"></b></p>
@@ -313,9 +313,9 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
 const MAT={
   wool:{kind:'ins',label:'Wełna mineralna – maty',short:'Wełna',lambda:0.035,mu:1,rho:20,t:15,min:1,max:60,color:'#e9c45b',grp:'Izolacja',pattern:true,items:true},
   blown:{kind:'ins',label:'Wełna wdmuchiwana',short:'Wełna wdmuchiwana',lambda:0.040,mu:1,rho:30,t:20,min:1,max:60,color:'#dbbd7a',grp:'Izolacja',items:true},
-  chord:{kind:'framed',label:'Pasy dolne wiązarów + wypełnienie',short:'Pasy wiązarów',t:15,min:8,max:30,woodW:4.5,spacing:95,fill:'wool',dir:'along',color:'#c39563',grp:'Konstrukcja',items:true,modes:['flat']},
+  chord:{kind:'framed',label:'Belki stropu + wypełnienie',short:'Belki stropu',t:15,min:8,max:30,woodW:4.5,spacing:95,fill:'wool',dir:'along',color:'#c39563',grp:'Konstrukcja',items:true,modes:['flat']},
   rafter:{kind:'framed',label:'Krokwie + wypełnienie',short:'Krokwie',t:20,min:10,max:30,woodW:8,spacing:90,fill:'wool',dir:'cross',color:'#bf8f5c',grp:'Konstrukcja',items:true,modes:['roof']},
-  joist:{kind:'framed',label:'Legary na pasach + wypełnienie',short:'Legary',t:20,min:5,max:40,woodW:5,spacing:60,fill:'wool',dir:'cross',ownWeight:true,color:'#b48455',grp:'Konstrukcja',items:true,modes:['flat']},
+  joist:{kind:'framed',label:'Legary na belkach + wypełnienie',short:'Legary',t:20,min:5,max:40,woodW:5,spacing:60,fill:'wool',dir:'cross',ownWeight:true,color:'#b48455',grp:'Konstrukcja',items:true,modes:['flat']},
   air:{kind:'air',label:'Pustka powietrzna',short:'Pustka',t:5,min:1,max:40,color:'#cdd7d3',grp:'Konstrukcja',items:true},
   grid1:{kind:'grid',label:'Ruszt pojedynczy CD60',short:'Ruszt CD60',t:2.7,fixed:true,R:0.15,kg:2.6,color:'#9aa4a9',grp:'Konstrukcja'},
   grid2:{kind:'grid',label:'Ruszt podwójny krzyżowy CD60',short:'Ruszt 2×CD60',t:5.4,fixed:true,R:0.16,kg:4.2,color:'#8b969b',grp:'Konstrukcja'},
@@ -335,6 +335,8 @@ const ITEM={
   kabel:{label:'Przewód',d:10,color:'#1d2022',duct:null},
 };
 const LAMBDA_WOOD=0.13, RHO_WOOD=450;
+const BEAM={wiazar:['Pasy dolne wiązarów + wypełnienie','Pasy wiązarów','pas dolny wiązara'],jetki:['Jętki + wypełnienie','Jętki','jętki'],belki:['Belki stropu drewnianego + wypełnienie','Belki stropu','belki stropu drewnianego']};
+function lname(l,short){if(l.type==='chord'){const b=BEAM[l.beam]||BEAM.wiazar;return short?b[1]:b[0];}const M=MAT[l.type];return short?M.short:M.label;}
 const LVL={ok:0,warn:1,bad:2};
 const worst=(...a)=>a.reduce((m,x)=>LVL[x]>LVL[m]?x:m,'ok');
 
@@ -381,7 +383,7 @@ function compute(layers,C,mode='flat'){
     const mixed=grp.some(r=>MAT[r.L.type].kind==='framed')&&grp.some(r=>MAT[r.L.type].kind!=='framed');
     const stag=grp.length>1&&(mixed||grp.some(r=>r.L.type==='wool'&&r.L.pattern&&r.L.pattern!=='prosto'));
     const lvl=stag?0:1; const du=lvl?0.01*(Rg/RT)**2:0; dUg+=du;
-    gaps.push({names:grp.map(r=>MAT[r.L.type].short),lvl,du}); i=j+1;
+    gaps.push({names:grp.map(r=>lname(r.L,1)),lvl,du}); i=j+1;
   }
   const U0=1/RT, U=U0+dUg;
   const pi=C.rhi/100*psat(C.ti), pe=C.rhe/100*psat(C.te);
@@ -398,7 +400,7 @@ function compute(layers,C,mode='flat'){
   if(maxEx>1){
     let best=null;
     for(const r of rows){for(const sdc2 of [r.sd0,r.sd1]){if(sdc2<=1e-6||sdc2>=sdT-1e-6)continue;const R=sdc2===r.sd0?r.R0:r.R1;const pc=psat(T(R));const gc=2e-10*((pi-pc)/sdc2-(pc-pe)/(sdT-sdc2));if(gc>0&&(!best||gc>best.gc))best={gc,y:sdc2===r.sd0?r.y0:r.y1,th:T(R)};}}
-    cond={y:exAt.y,lid:exAt.row.L.id,layer:MAT[exAt.row.L.type].short,gday:best?best.gc*86400*1000:null,yPlane:best?best.y:exAt.y,th:best?best.th:exAt.th};
+    cond={y:exAt.y,lid:exAt.row.L.id,layer:lname(exAt.row.L,1),gday:best?best.gc*86400*1000:null,yPlane:best?best.y:exAt.y,th:best?best.th:exAt.th};
   }
   const thetaSi=T(C.rsi), fRsi=1-C.rsi/RT;
   // instalacje
@@ -428,7 +430,7 @@ function compute(layers,C,mode='flat'){
       msgs.push(warmSide?'Po ciepłej stronie paroizolacji: dostęp bez przebijania folii.':'Nad paroizolacją: każde wyjście w dół przebije folię, wymaga przepustu.');
     }
     if(K.duct==='exhaust'&&insAbove<20)msgs.push(`Nad kanałem tylko ${fmt(insAbove,0)} cm izolacji (zalecane min. ok. 20 cm).`);
-    pipes.push({it,K,layer:MAT[r.L.type].short,lid:r.L.id,yc,top,bo,tTop,tC,insAbove,RAbove,crosses,out,warmSide,lvl,msgs});
+    pipes.push({it,K,layer:lname(r.L,1),lid:r.L.id,yc,top,bo,tTop,tC,insAbove,RAbove,crosses,out,warmSide,lvl,msgs});
   }}
   // wysokość pokoju
   const ch=rows.filter(r=>r.L.type===(mode==='roof'?'rafter':'chord')); const anchorRow=ch.length?ch[0]:null;
@@ -457,6 +459,20 @@ function compute(layers,C,mode='flat'){
   };
   return {mode,roof,h0,yDew,rows,total,RT,U0,U,dUg,gaps,T,Rat,pi,pe,dewIn,dewEx,barrier,samples,cond,thetaSi,fRsi,pipes,yAnchor,anchorRow,clear,hangers,kg,wool,q,P,kWh,status,sdT};
 }
+function payback(layers,C,mode,addT){
+  const base=compute(layers,C,mode);
+  const extra={id:'_add',type:'wool',t:addT,lambda:C.addLam,pattern:'90',items:[]};
+  const ls=[...layers];
+  if(mode==='roof'){const i=ls.findIndex(l=>l.type==='rafter');ls.splice(i>=0?i+1:0,0,extra);}else ls.unshift(extra);
+  const after=compute(ls,C,mode);
+  const dU=base.U-after.U, heat=dU*C.area*C.hdd*24/1000, fuel=heat/Math.max(0.1,C.eff), save=fuel*C.ePrice;
+  const invest=C.area*addT/100*C.woolPrice+C.area*C.labor;
+  const g=C.growth/100;
+  const simple=save>0?invest/save:Infinity;
+  const grown=save>0?(g>0?Math.log(1+invest*g/save)/Math.log(1+g):simple):Infinity;
+  const life=save>0?(g>0?save*((1+g)**30-1)/g:save*30)-invest:-invest;
+  return {U0:base.U,U1:after.U,heat,fuel,save,invest,simple,grown,life,barOk:!after.barrier||after.barrier.status!=='bad'};
+}
 function fmt(x,d=1){if(x==null||!isFinite(x))return '–';return x.toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d}).replace('-','−');}
 </script>
 
@@ -467,7 +483,8 @@ function fmt(x,d=1){if(x==null||!isFinite(x))return '–';return x.toLocaleStrin
 /* ---------- stan ---------- */
 const KEY='termo-przegroda.v1',OLD_KEY=null;
 let uidN=Date.now()%100000; const uid=()=>'x'+(uidN++).toString(36);
-const DEF_C={ti:20,rhi:50,te:-16,rhe:85,rsi:0.10,rse:0.10,rhEx:60,tSupply:18,hScreed:270,floorT:1.5,hMin:250,alpha:40,hKnee:120,area:80,hdd:3600,loadMax:50};
+const DEF_C={ti:20,rhi:50,te:-16,rhe:85,rsi:0.10,rse:0.10,rhEx:60,tSupply:18,hScreed:270,floorT:1.5,hMin:250,alpha:40,hKnee:120,area:100,hdd:3600,loadMax:50,addT:15,addLam:0.039,woolPrice:150,labor:0,heat:'hp',eff:3.5,ePrice:1.05,growth:3};
+const HEAT={hp:['Pompa ciepła (SCOP)',3.5,1.05],gas:['Kocioł gazowy',0.95,0.35],el:['Ogrzewanie elektryczne',1.0,1.05],pellet:['Kocioł na pellet',0.85,0.30]};
 function L(type,o={}){const M=MAT[type];const l={id:uid(),type,t:M.t,items:[]};
   if(M.pattern)l.pattern='prosto';
   if(M.kind==='framed'){l.woodW=M.woodW;l.spacing=M.spacing;l.fill=M.fill;l.dir=M.dir;}
@@ -539,7 +556,7 @@ function cardHTML(l,i,n){const M=MAT[l.type];const open=ui.open.has(l.id);
   const th=resizable?`<div class="tctl"><button data-act="dec" aria-label="Cieniej o 1 cm">−</button><span data-th>${tcm(l.t)}</span><button data-act="inc" aria-label="Grubiej o 1 cm">+</button></div>`:`<span class="tfix" data-th>${tcm(l.t)}</span>`;
   return `<div class="card${ui.sel===l.id?' sel':''}" data-lid="${l.id}">
   <div class="card-h"><span class="grip" title="Przeciągnij, aby przenieść" data-grip>⋮⋮</span><span class="sw" style="background:${M.color}"></span>
-  <button class="nm" data-act="toggle" aria-expanded="${open}"><b>${esc(M.label)}</b></button>
+  <button class="nm" data-act="toggle" aria-expanded="${open}"><b>${esc(lname(l))}</b></button>
   <div class="ops"><button class="ib" data-act="up" title="W górę" ${i===0?'disabled':''}>↑</button><button class="ib" data-act="down" title="W dół" ${i===n-1?'disabled':''}>↓</button><button class="ib" data-act="del" title="Usuń warstwę">×</button></div>
   <div class="row2">${th}<small data-sub>${esc(subline(l))}</small></div></div>
   <div class="card-b" ${open?'':'hidden'}>${bodyHTML(l)}</div></div>`;}
@@ -551,11 +568,12 @@ function bodyHTML(l){const M=MAT[l.type];let h='';
   const g=[];
   if(M.boards)g.push(fld('Grubość płyty',sel('t',l.t,Object.fromEntries(M.boards.map(b=>[b,`${fmt(b*10,1)} mm`])))));
   if(M.kind==='ins'){g.push(fld('λ [W/mK]',num('lambda',l.lambda||M.lambda,0.001,0.02,0.06)));if(M.pattern)g.push(fld('Układ mat',sel('pattern',l.pattern,PAT)));}
-  if(M.kind==='framed'){g.push(fld('Rozstaw osiowy [cm]',num('spacing',l.spacing,1,30,150)));g.push(fld('Szerokość drewna [cm]',num('woodW',l.woodW,0.5,3,20)));g.push(fld('Wypełnienie',sel('fill',l.fill,Object.fromEntries(Object.entries(FILL).map(([k,v])=>[k,v.label])))));if(l.fill!=='air')g.push(fld('λ wypełnienia',num('lambda',l.lambda||FILL[l.fill].lambda,0.001,0.02,0.06)));if(l.type!=='rafter')g.push(fld('Kierunek',sel('dir',l.dir,{along:'wzdłuż wiązarów',cross:'w poprzek wiązarów'})));}
+  if(l.type==='chord')g.push(fld('Rodzaj belek',sel('beam',l.beam||'wiazar',Object.fromEntries(Object.entries(BEAM).map(([k,v])=>[k,v[2]])))));
+  if(M.kind==='framed'){g.push(fld('Rozstaw osiowy [cm]',num('spacing',l.spacing,1,30,150)));g.push(fld('Szerokość drewna [cm]',num('woodW',l.woodW,0.5,3,20)));g.push(fld('Wypełnienie',sel('fill',l.fill,Object.fromEntries(Object.entries(FILL).map(([k,v])=>[k,v.label])))));if(l.fill!=='air')g.push(fld('λ wypełnienia',num('lambda',l.lambda||FILL[l.fill].lambda,0.001,0.02,0.06)));if(l.type!=='rafter')g.push(fld('Kierunek',sel('dir',l.dir,{along:'wzdłuż belek',cross:'w poprzek belek'})));}
   if(M.kind==='mem')g.push(fld('sd [m]',num('sd',l.sd,0.01,0.01,1500)));
   if(M.kind==='grid'){g.push(fld('Wypełnienie',sel('fill',l.fill||'air',{air:'pustka (sam ruszt)',wool:'wełna między profilami'})));if(l.fill==='wool')g.push(fld('λ wełny',num('lambda',l.lambda||0.035,0.001,0.02,0.06)));}
   if(g.length)h+=`<div class="grid2">${g.join('')}</div>`;
-  if(l.type==='chord')h+='<p class="hint" style="margin:0">Zmierz wysokość pasa na budowie: przekroje bywają różne w różnych wiązarach (np. 12, 14,5 lub 19,5 cm).</p>';
+  if(l.type==='chord'&&(l.beam||'wiazar')==='wiazar')h+='<p class="hint" style="margin:0">Zmierz wysokość pasa na budowie: w wiązarach przekroje pasów bywają różne (np. 12, 14,5 lub 19,5 cm).</p>';
   if(M.items){
     h+=`<div class="items">${(l.items||[]).map(it=>itemHTML(it,l)).join('')}</div>
     <div class="addrow"><button class="chip" data-act="additem" data-kind="wywiew">+ kanał wywiew</button><button class="chip" data-act="additem" data-kind="nawiew">+ kanał nawiew</button><button class="chip" data-act="additem" data-kind="zimny">+ czerpnia/wyrzutnia</button><button class="chip" data-act="additem" data-kind="peszel">+ peszel</button><button class="chip" data-act="additem" data-kind="kabel">+ przewód</button></div>`;
@@ -599,7 +617,7 @@ function onField(e,final){
     if(f==='dir'){it.dir=v;}else{v=parseFloat(String(v).replace(',','.'));if(!isFinite(v))return;it[f]=f==='count'?Math.max(1,Math.min(8,Math.round(v))):v;}
     if(final){renderCards();}refresh();return;}
   if(f==='t'){v=parseFloat(v);if(!isFinite(v))return;if(MAT[l.type].boards){l.t=v;}else setT(l,v);patchCard(l);refresh();return;}
-  if(['pattern','fill','dir'].includes(f)){l[f]=v;if(f==='fill')delete l.lambda;renderCards();refresh();return;}
+  if(['pattern','fill','dir','beam'].includes(f)){l[f]=v;if(f==='fill')delete l.lambda;renderCards();refresh();return;}
   v=parseFloat(String(v).replace(',','.'));if(!isFinite(v)||v<=0)return;l[f]=v;patchCard(l);refresh();
 }
 cards.addEventListener('input',e=>{if(e.target.tagName!=='SELECT')onField(e,false);});
@@ -638,8 +656,8 @@ function tileData(R){const C=S.C,st=R.status,b=R.barrier;
     {cls:st.bar,k:'Temperatura folii',v:b?fmt(b.theta,1):'brak',u:b?'°C':'',s:b?`punkt rosy ${fmt(R.dewIn,1)} °C`:'dodaj paroizolację'},
     {cls:st.cond,k:'Kondensacja',v:R.cond?fmt(R.cond.gday||0,0):'brak',u:R.cond?'g/m²·doba':'',s:R.cond?`w warstwie: ${R.cond.layer}`:`przy ${fmt(C.te,0)} °C ${R.mode==='roof'?'na zewnątrz':'na strychu'}`},
     {cls:st.pipes,k:'Kanały i peszle',v:String(R.pipes.length),u:R.pipes.length===1?'pozycja':'pozycji',s:pipeTxt},
-    {cls:st.h,k:'Pokój w świetle',v:fmt(R.clear,1),u:'cm',s:`posadzka → pas ${fmt(R.h0,1)} cm`},
-    {cls:st.load,k:'Obciążenie pasa',v:fmt(R.kg,1),u:'kg/m²',s:`limit pasa ${fmt(C.loadMax,0)}`}].map((t,i)=>{
+    {cls:st.h,k:'Pokój w świetle',v:fmt(R.clear,1),u:'cm',s:`posadzka → belki ${fmt(R.h0,1)} cm`},
+    {cls:st.load,k:'Obciążenie belek',v:fmt(R.kg,1),u:'kg/m²',s:`limit belek ${fmt(C.loadMax,0)}`}].map((t,i)=>{
       if(R.mode!=='roof')return t;const f=R.roof;
       if(i===4)return {cls:'ok',k:'Skos przy ściance',v:fmt(f.hk,1),u:'cm',s:`2,2 m po ${fmt(f.d220,0)} cm od ścianki`};
       if(i===5)return {cls:'ok',k:'Izolacja łącznie',v:fmt(R.wool,0),u:'cm',s:`zabudowa pod krokwią ${fmt(R.yAnchor,1)} cm`};
@@ -679,19 +697,30 @@ function renderDetails(){const R=RES,C=S.C;const b=R.barrier;
   const fr=R.roof;
   h+=(fr?`<section class="sec"><h2><span class="h2l">Skos i ścianka kolankowa ${ib('roof')}</span></h2>
    <dl class="kv"><dt>Kąt dachu</dt><dd>${fmt(C.alpha,0)}°</dd><dt>Zabudowa pod krokwią (prostopadle)</dt><dd>${fmt(R.yAnchor,1)} cm</dd><dt>Obniżenie skosu w pionie</dt><dd>${fmt(fr.dz,1)} cm</dd><dt>Przesunięcie skosu w poziomie</dt><dd>${fmt(fr.dx,1)} cm</dd><dt>Skos przy ściance (gotowy)</dt><dd>${fmt(fr.hk,1)} cm</dd><dt>Od ścianki do 1,4 m</dt><dd>${fmt(fr.d140,0)} cm</dd><dt>Od ścianki do 2,2 m</dt><dd>${fmt(fr.d220,0)} cm</dd><dt>Ciężar warstw (bez krokwi)</dt><dd>${fmt(R.kg,1)} kg/m²</dd></dl>
-   <div class="grid2" style="margin-top:10px"><div class="fld"><label for="c_area">Powierzchnia skosów [m²]</label><input id="c_area" type="number" step="1" data-c="area" value="${C.area}"></div></div>
    <p class="note" style="margin-top:8px">Kąt i wysokość przy ściance wpisujesz w panelu po lewej.</p>`:`<section class="sec"><h2>Wysokość i obciążenie</h2>
-   <div class="grid2"><div class="fld"><label for="c_area">Powierzchnia sufitu [m²]</label><input id="c_area" type="number" step="1" data-c="area" value="${C.area}"></div>
-   <div class="fld"><label for="c_loadMax">Limit pasa [kg/m²]</label><input id="c_loadMax" type="number" step="1" data-c="loadMax" value="${C.loadMax}"></div></div>
-   <dl class="kv" style="margin-top:10px"><dt>Wylewka → spód pasa</dt><dd>${fmt(C.hScreed,1)} cm</dd><dt>Podłoga docelowa</dt><dd>${fmt(C.floorT,1)} cm</dd><dt>Posadzka gotowa → spód pasa</dt><dd>${fmt(R.h0,1)} cm</dd><dt>Pokój w świetle</dt><dd>${fmt(R.clear,1)} cm ${pill(R.status.h)}</dd><dt>Zabudowa pod pasem</dt><dd>${fmt(R.yAnchor,1)} cm</dd><dt>Ciężar warstw (bez wiązarów)</dt><dd>${fmt(R.kg,1)} kg/m²</dd></dl>
-   <p class="note" style="margin-top:8px">Wysokości wpisujesz w panelu po lewej. Limit obciążenia pasa dolnego weź z projektu wiązarów albo umowy z ich producentem (często 50 kg/m²). Strefa składowania na strychu ma zwykle osobne, wyższe obciążenie.</p>`)+`
+   <div class="grid2"><div class="fld"><label for="c_loadMax">Limit belek [kg/m²]</label><input id="c_loadMax" type="number" step="1" data-c="loadMax" value="${C.loadMax}"></div></div>
+   <dl class="kv" style="margin-top:10px"><dt>Wylewka → spód belek</dt><dd>${fmt(C.hScreed,1)} cm</dd><dt>Podłoga docelowa</dt><dd>${fmt(C.floorT,1)} cm</dd><dt>Posadzka gotowa → spód belek</dt><dd>${fmt(R.h0,1)} cm</dd><dt>Pokój w świetle</dt><dd>${fmt(R.clear,1)} cm ${pill(R.status.h)}</dd><dt>Zabudowa pod belkami</dt><dd>${fmt(R.yAnchor,1)} cm</dd><dt>Ciężar warstw (bez wiązarów)</dt><dd>${fmt(R.kg,1)} kg/m²</dd></dl>
+   <p class="note" style="margin-top:8px">Wysokości wpisujesz w panelu po lewej. Dopuszczalne obciążenie belek weź z projektu konstrukcji (dla pasa dolnego wiązara często 50 kg/m²). Strefa składowania na strychu ma zwykle osobne, wyższe obciążenie.</p>`)+`
    <details class="adv" ${ui.adv?'open':''}><summary>Ustawienia zaawansowane</summary><div class="grid2" style="margin-top:8px">
    <div class="fld"><label for="c_rsi">R<sub>si</sub> [m²K/W]</label><input id="c_rsi" type="number" step="0.01" data-c="rsi" value="${C.rsi}"></div>
    <div class="fld"><label for="c_rse">R<sub>se</sub> [m²K/W]</label><input id="c_rse" type="number" step="0.01" data-c="rse" value="${C.rse}"></div>
    <div class="fld"><label for="c_rhEx">RH wywiewu [%]</label><input id="c_rhEx" type="number" step="1" data-c="rhEx" value="${C.rhEx}"></div>
-   <div class="fld"><label for="c_tSupply">Nawiew [°C]</label><input id="c_tSupply" type="number" step="0.5" data-c="tSupply" value="${C.tSupply}"></div>
-   <div class="fld"><label for="c_hdd">Stopniodni [K·d]</label><input id="c_hdd" type="number" step="50" data-c="hdd" value="${C.hdd}"></div></div></details>
+   <div class="fld"><label for="c_tSupply">Nawiew [°C]</label><input id="c_tSupply" type="number" step="0.5" data-c="tSupply" value="${C.tSupply}"></div></div></details>
   </section>`;
+  // opłacalność docieplenia
+  {const pb=payback(V().layers,C,R.mode,C.addT);const yrs=v=>isFinite(v)&&v<200?`${fmt(v,v<10?1:0)} lat`:'nie zwraca się';
+   const nf=(id,lab,k,st)=>`<div class="fld"><label for="${id}">${lab}</label><input id="${id}" type="number" step="${st}" data-c="${k}" value="${C[k]}"></div>`;
+   const tbl=[5,10,15,20,25,30].map(t=>({t,r:payback(V().layers,C,R.mode,t)}));
+   h+=`<section class="sec"><h2><span class="h2l">Opłacalność docieplenia ${ib('pay')}</span>${pill(pb.grown<=15?'ok':pb.grown<=30?'warn':'bad','zwrot '+yrs(pb.grown))}</h2>
+   <p class="hint" style="margin:0 0 10px">Dodatkowa warstwa wełny ${R.mode==='roof'?'pod krokwiami':'na wierzchu, od strony strychu'}, ułożona w poprzek.</p>
+   <div class="grid2">${nf('c_addT','Dokładka [cm]','addT',1)}${nf('c_addLam','λ dokładki','addLam',0.001)}${nf('c_area',R.mode==='roof'?'Powierzchnia skosów [m²]':'Powierzchnia sufitu [m²]','area',1)}${nf('c_woolPrice','Cena wełny [zł/m³]','woolPrice',5)}${nf('c_labor','Robocizna [zł/m²]','labor',1)}
+   <div class="fld"><label for="c_heat">Źródło ciepła</label><select id="c_heat">${Object.entries(HEAT).map(([k,v])=>`<option value="${k}" ${C.heat===k?'selected':''}>${v[0]}</option>`).join('')}</select></div>
+   ${nf('c_eff',C.heat==='hp'?'SCOP':'Sprawność','eff',0.05)}${nf('c_ePrice','Cena energii [zł/kWh]','ePrice',0.01)}${nf('c_growth','Wzrost cen [%/rok]','growth',0.5)}${nf('c_hdd','Stopniodni [K·d]','hdd',50)}</div>
+   <dl class="kv" style="margin-top:10px"><dt>U teraz → po dokładce</dt><dd>${fmt(pb.U0,3)} → ${fmt(pb.U1,3)}</dd><dt>Mniej strat ciepła</dt><dd>${fmt(pb.heat,0)} kWh/rok</dd><dt>Mniej energii do kupienia</dt><dd>${fmt(pb.fuel,0)} kWh/rok</dd><dt>Oszczędność</dt><dd>${fmt(pb.save,0)} zł/rok</dd><dt>Koszt dokładki</dt><dd>${fmt(pb.invest,0)} zł</dd><dt>Zwrot prosty</dt><dd>${yrs(pb.simple)}</dd><dt>Zwrot przy wzroście cen</dt><dd>${yrs(pb.grown)}</dd><dt>Bilans po 30 latach</dt><dd>${pb.life>=0?'+':''}${fmt(pb.life,0)} zł</dd></dl>
+   ${pb.barOk?'':'<p class="msg bad">Dokładka w tym miejscu ochłodzi paroizolację poniżej punktu rosy. Sprawdź układ warstw.</p>'}
+   <div class="cmpwrap" style="margin-top:10px"><table class="cmp"><thead><tr><th>Dokładka</th><th>U</th><th>zł/rok</th><th>Koszt</th><th>Zwrot</th></tr></thead><tbody>
+   ${tbl.map(({t,r})=>`<tr class="${t===C.addT?'cur':''}" style="cursor:default"><td>+${t} cm</td><td>${fmt(r.U1,3)}</td><td>${fmt(r.save,0)}</td><td>${fmt(r.invest,0)}</td><td>${yrs(r.grown)}</td></tr>`).join('')}</tbody></table></div>
+   <p class="note" style="margin-top:8px">Ceny są przykładowe: wpisz swoje z rachunku i oferty hurtowni. Liczone są tylko straty przez tę przegrodę.</p></section>`;}
   // porównanie
   const all=modeVariants().map(v=>({v,r:calc(v)}));
   h+=`<section class="sec"><h2>Porównanie wariantów</h2><div class="cmpwrap"><table class="cmp"><thead><tr><th>Wariant</th><th>U</th><th>Folia °C</th><th>Rosa</th><th>${S.mode==='roof'?'Skos':'Pokój'}</th></tr></thead><tbody>
@@ -700,6 +729,7 @@ function renderDetails(){const R=RES,C=S.C;const b=R.barrier;
    <p class="note">Metoda uproszczona: PN-EN ISO 6946 (warstwy niejednorodne uśrednione powierzchniowo), Glaser wg ISO 13788. Do decyzji wykonawczych skonsultuj z projektantem.</p></section>`;
   $('#details').innerHTML=h;
 }
+$('#details').addEventListener('change',e=>{if(e.target.id==='c_heat'){const hh=HEAT[e.target.value];S.C.heat=e.target.value;S.C.eff=hh[1];S.C.ePrice=hh[2];refresh();}});
 $('#details').addEventListener('toggle',e=>{if(e.target.matches&&e.target.matches('details.adv'))ui.adv=e.target.open;},true);
 $('#details').addEventListener('click',e=>{const tr=e.target.closest('tr[data-v]');if(!tr||tr.dataset.v===S.active)return;S.active=tr.dataset.v;ui.sel=null;renderVariants();renderCards();refresh(true);});
 
@@ -751,8 +781,8 @@ function sectionSVG(W,H,print){
   for(const r of rows){const M=MAT[r.L.type];if(M.kind!=='mem')continue;const y=Y(r.y0);g+=`<g class="lay" data-lid="${r.L.id}"><line x1="${xS}" y1="${y}" x2="${xS+stripW}" y2="${y}" stroke="${M.color}" stroke-width="${ui.sel===r.L.id?4:2.6}" stroke-dasharray="${r.L.type==='wind'?'5 3':'0'}"/><rect x="${xS}" y="${y-4}" width="${stripW}" height="8" fill="transparent"/></g>`;}
   g+=`</g><rect x="${xS}" y="${top}" width="${stripW}" height="${usedH}" fill="none" stroke="var(--line2)" stroke-width="1"/>`;
   // etykiety warstw
-  for(const r of rows){const M=MAT[r.L.type];const yt=Y(r.y1),yb=Y(r.y0);if(M.kind==='mem'){g+=`<text x="${xS+4}" y="${yb-4}" font-size="${fs-1}" fill="${M.color}" font-weight="600">${M.short}</text>`;continue;}
-    if(yb-yt>=15){const txt=`${M.short} ${tcm(r.L.t)}`;const w=txt.length*(fs*0.56)+8;g+=`<g pointer-events="none"><rect x="${xS+3}" y="${(yt+yb)/2-8}" width="${Math.min(w,stripW-6)}" height="16" rx="3" fill="var(--panel)" opacity=".86"/><text x="${xS+7}" y="${(yt+yb)/2+4}" font-size="${fs}" fill="var(--ink)">${txt}</text></g>`;}}
+  for(const r of rows){const M=MAT[r.L.type];const yt=Y(r.y1),yb=Y(r.y0);if(M.kind==='mem'){g+=`<text x="${xS+4}" y="${yb-4}" font-size="${fs-1}" fill="${M.color}" font-weight="600">${lname(r.L,1)}</text>`;continue;}
+    if(yb-yt>=15){const txt=`${lname(r.L,1)} ${tcm(r.L.t)}`;const w=txt.length*(fs*0.56)+8;g+=`<g pointer-events="none"><rect x="${xS+3}" y="${(yt+yb)/2-8}" width="${Math.min(w,stripW-6)}" height="16" rx="3" fill="var(--panel)" opacity=".86"/><text x="${xS+7}" y="${(yt+yb)/2+4}" font-size="${fs}" fill="var(--ink)">${txt}</text></g>`;}}
   // uchwyty zmiany grubości
   if(!print)for(const r of rows){const M=MAT[r.L.type];if(M.fixed||M.boards)continue;const y=Y(r.y1);
     g+=`<g class="hdl" data-lid="${r.L.id}"><rect x="${xS-4}" y="${y-6}" width="${stripW+8}" height="12" fill="transparent"/><rect x="${xS+stripW-22}" y="${y-3}" width="18" height="6" rx="3" fill="var(--accent)" opacity="${ui.drag&&ui.drag.lid===r.L.id?1:.55}"/></g>`;}
@@ -887,10 +917,10 @@ function build3D(){
         else{geo=new THREE.CylinderGeometry(rad,rad,D3+0.6,28);geo.rotateX(Math.PI/2);me=new THREE.Mesh(geo,pm);me.position.set(Math.max(X0+rad,Math.min(X1-rad,o)),yc,0);}
         me.userData.lid=lid;G.root.add(me);
         if(K.duct&&rad>2&&it.dir!=='cross'){const ring=new THREE.Mesh(new THREE.CircleGeometry(rad*0.86,28),mat('#3a3d3b',{}));ring.position.set(me.position.x,yc,Z1+0.31);G.root.add(ring);}}}
-    if(ui.labels)G.labels.push({lid,text:`${M.short}`,th:tcm(l.t),p:new THREE.Vector3(X1,(y0+y1)/2,Z1),sel});
+    if(ui.labels)G.labels.push({lid,text:lname(l,1),th:tcm(l.t),p:new THREE.Vector3(X1,(y0+y1)/2,Z1),sel});
 
   });
-  // wieszaki rusztu do pasów
+  // wieszaki rusztu do belek
   const gi=rows.findIndex(r=>MAT[r.L.type].kind==='grid');const ci=rows.findIndex(r=>r.L.type==='chord');
   if(S.mode!=='roof'&&gi>=0&&ci>gi){const gr=rows[gi],cr=rows[ci];const yA=gr._y1,yB=cr._y0;const hm=mat('#8e989c',{metal:0.6,rough:0.4});const xs=cr.L.dir!=='cross'?beamsPos(W3,cr.L.spacing):[0];const zs=gr.L.type==='grid2'?[-50,50]:beamsPos(D3,50);
     const mem=rows.find((r,i)=>i>gi&&i<ci&&MAT[r.L.type].kind==='mem'&&r.p.sd>=2);
@@ -914,13 +944,13 @@ function placeLabels(){const host=$('#lbls');if(!host)return;if(!G.labels){host.
 
 /* ---------- kopiowanie ---------- */
 $('#copy').addEventListener('click',()=>{const R=RES,C=S.C;const b=R.barrier;
-  const lines=[`Kalkulator termiczny stropu – ${V().name}`,(S.mode==='roof'?'Warstwy od zewnątrz:':'Warstwy od strychu:'),...V().layers.map(l=>{const M=MAT[l.type];let s=`• ${M.label} – ${tcm(l.t)}`;const sub=subline(l);if(sub)s+=` (${sub})`;(l.items||[]).forEach(it=>{s+=`\n   – ${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`;});return s;}),
+  const lines=[`Kalkulator termiczny stropu – ${V().name}`,(S.mode==='roof'?'Warstwy od zewnątrz:':'Warstwy od strychu:'),...V().layers.map(l=>{const M=MAT[l.type];let s=`• ${lname(l)} – ${tcm(l.t)}`;const sub=subline(l);if(sub)s+=` (${sub})`;(l.items||[]).forEach(it=>{s+=`\n   – ${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`;});return s;}),
    ``,`Warunki: pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} %, ${S.mode==='roof'?'na zewnątrz':'strych'} ${fmt(C.te,0)} °C`,
    `U = ${fmt(R.U,3)} W/m²K (WT ≤ 0,15)${R.status.U==='ok'?' – OK':' – za dużo'}`,
    b?`Folia: ${fmt(b.theta,1)} °C, punkt rosy ${fmt(R.dewIn,1)} °C – ${b.status==='ok'?'OK':b.status==='warn'?'na granicy':'za zimno'}`:'Brak paroizolacji',
    `Kondensacja: ${R.cond?`tak, w warstwie ${R.cond.layer} (~${fmt(R.cond.gday||0,0)} g/m² dziennie)`:'brak'}`,
    ...R.pipes.map(p=>`${p.K.label} Ø${p.it.d}: ${fmt(p.tTop,1)} °C nad rurą, ${fmt(p.insAbove,0)} cm izolacji nad nią`),
-   R.roof?`Kąt ${fmt(C.alpha,0)}°, skos przy ściance ${fmt(R.roof.hk,1)} cm, do 2,2 m: ${fmt(R.roof.d220,0)} cm od ścianki`:`Wylewka → pas ${fmt(C.hScreed,1)} cm, podłoga ${fmt(C.floorT,1)} cm, pokój w świetle ${fmt(R.clear,1)} cm`,`Ciężar warstw ${fmt(R.kg,1)} kg/m²`];
+   R.roof?`Kąt ${fmt(C.alpha,0)}°, skos przy ściance ${fmt(R.roof.hk,1)} cm, do 2,2 m: ${fmt(R.roof.d220,0)} cm od ścianki`:`Wylewka → belki ${fmt(C.hScreed,1)} cm, podłoga ${fmt(C.floorT,1)} cm, pokój w świetle ${fmt(R.clear,1)} cm`,`Ciężar warstw ${fmt(R.kg,1)} kg/m²`,(()=>{const pb=payback(V().layers,C,R.mode,C.addT);return `Dokładka +${fmt(C.addT,0)} cm na ${fmt(C.area,0)} m²: ${fmt(pb.invest,0)} zł, oszczędność ${fmt(pb.save,0)} zł/rok, zwrot ${isFinite(pb.grown)&&pb.grown<200?fmt(pb.grown,1)+' lat':'—'}`;})()];
   const txt=lines.join('\n');
   const ok=()=>toast('Skopiowano zestawienie');
   const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){toast('Nie udało się skopiować');}ta.remove();};
@@ -944,18 +974,19 @@ new ResizeObserver(()=>{if(RES&&!ui.drag)renderSection();}).observe($('#section'
 
 /* ---------- wyjaśnienia ---------- */
 const INFO={
-  przekroj:['Jak czytać przekrój','Pasek po lewej to przegroda w prawdziwej skali: góra to strych, dół pokój, a 1 cm warstwy ma tyle samo pikseli w pionie i w poziomie, więc kanały i pasy wiązarów mają realne proporcje. Linijka podaje wysokość każdej granicy warstw nad posadzką gotową. Oba wykresy po prawej mają tę samą skalę pionową: punkt wykresu odpowiada miejscu w przegrodzie na tej samej wysokości.'],
+  przekroj:['Jak czytać przekrój','Pasek po lewej to przegroda w prawdziwej skali: góra to strych, dół pokój, a 1 cm warstwy ma tyle samo pikseli w pionie i w poziomie, więc kanały i belki mają realne proporcje. Linijka podaje wysokość każdej granicy warstw nad posadzką gotową. Oba wykresy po prawej mają tę samą skalę pionową: punkt wykresu odpowiada miejscu w przegrodzie na tej samej wysokości.'],
   temp:['Temperatura w przegrodzie','Linia pokazuje temperaturę w każdym miejscu przegrody przy warunkach z panelu po lewej. Spadek temperatury w warstwie jest proporcjonalny do jej oporu cieplnego: wełna przejmuje prawie całą różnicę, płyty i folia prawie nic. Dlatego w wełnie linia jest pochyła, a w płytach niemal pionowa. Romby oznaczają temperaturę nad kanałami rekuperacji.'],
   dew:['Punkt rosy','Temperatura, przy której powietrze z pokoju zaczyna oddawać wodę. Zależy od temperatury i wilgotności w pokoju: przy 20 °C i 50 % to ok. 9,3 °C. Każde miejsce w przegrodzie zimniejsze od punktu rosy, do którego dociera powietrze z pokoju, będzie mokre. Fioletowa linia pozioma pokazuje, na jakiej wysokości przegroda ma właśnie tę temperaturę; paroizolacja powinna leżeć poniżej niej.'],
   psat:['Ciśnienie nasycenia','Największa ilość pary wodnej, jaką powietrze może utrzymać w danej temperaturze. Im zimniej, tym mniej, dlatego linia kropkowana spada w stronę strychu.'],
   p:['Ciśnienie pary','Ile pary rzeczywiście jest w danym miejscu. Para przenika z ciepłego, wilgotnego pokoju w stronę strychu, a każda warstwa ją hamuje proporcjonalnie do swojego sd (oporu dyfuzyjnego, wyrażonego w metrach równoważnej warstwy powietrza). Folia PE (sd ok. 75 m) zatrzymuje prawie całą parę, więc za nią linia spada niemal do poziomu strychu.'],
   kond:['Kondensacja (metoda Glasera)','Gdy linia ciśnienia pary przechodzi nad linię nasycenia, para nie mieści się w powietrzu i skrapla się. Na czerwono zaznaczone są takie odcinki. Liczone dla jednego stanu (np. mrozu projektowego), więc pokazuje najgorszy dzień, a nie roczny bilans wody. Wynik w g/m² na dobę to szacunek przy tych warunkach.'],
-  U:['Współczynnik U','Ile watów ucieka przez 1 m² przegrody przy różnicy temperatur 1 °C. Im mniej, tym lepiej. Warunki techniczne (od 2021 r.) wymagają dla stropu pod nieogrzewanym strychem U ≤ 0,15 W/m²K. Drewno pasów i legarów jest uśrednione z wełną według udziału w powierzchni, co jest metodą uproszczoną.'],
+  U:['Współczynnik U','Ile watów ucieka przez 1 m² przegrody przy różnicy temperatur 1 °C. Im mniej, tym lepiej. Warunki techniczne (od 2021 r.) wymagają dla stropu pod nieogrzewanym strychem U ≤ 0,15 W/m²K. Drewno belek, legarów i krokwi jest uśrednione z wełną według udziału w powierzchni, co jest metodą uproszczoną.'],
   dUg:['Korekta na szczeliny ΔUg','Spoiny między matami w jednej warstwie, albo w kilku warstwach ułożonych dokładnie jedna na drugiej, przechodzą na wylot i pogarszają U (PN-EN ISO 6946, zał. F). Druga warstwa na mijankę lub pod 90° zakrywa spoiny dolnej i korekta znika.'],
   bar:['Paroizolacja','Za paroizolację uznawana jest warstwa o największym oporze dyfuzyjnym (sd ≥ 2 m). Musi być cieplejsza niż punkt rosy powietrza w pokoju, inaczej para skropli się tuż pod nią. Praktyczna zasada: od strony pokoju pod folią najwyżej ok. 1/3 izolacji.'],
   pipes:['Kanały i instalacje','Dla każdego kanału liczona jest temperatura przegrody na wysokości wierzchu rury. Kanał wywiewny niesie ciepłe, wilgotne powietrze z łazienek: przy postoju rekuperatora ostygnie ono do tej temperatury, a jeśli to mniej niż jego punkt rosy, woda skropli się w środku kanału. Zimne kanały (czerpnia, wyrzutnia) po ciepłej stronie folii potrzebują otuliny paroszczelnej.'],
-  height:['Wysokość pomieszczenia','Pokój w świetle = (wylewka → spód pasa wiązara) − podłoga docelowa − wszystko, co wisi pod pasem: strefa instalacyjna, ruszt, płyty. Punktem odniesienia jest spód najniższej warstwy „Pasy dolne wiązarów”. Linijka przy przekroju podaje wysokości nad posadzką gotową.'],
+  height:['Wysokość pomieszczenia','Pokój w świetle = (wylewka → spód belek stropu) − podłoga docelowa − wszystko, co wisi pod belkami: strefa instalacyjna, ruszt, płyty. Punktem odniesienia jest spód najniższej warstwy belek (pasy wiązarów, jętki albo belki stropu drewnianego). Linijka przy przekroju podaje wysokości nad posadzką gotową.'],
   roof:['Skos i ścianka kolankowa','Wysokość skosu przy ściance = (wylewka → spód krokwi przy ściance) − podłoga − zabudowa pod krokwią przeliczona na pion (grubość ÷ cos kąta dachu). Odległości do 1,4 m i 2,2 m pokazują, ile pokoju zabiera skos. Wg PN-ISO 9836 powierzchnia o wysokości co najmniej 2,2 m liczy się w 100 %, od 1,4 do 2,2 m w 50 %, a niższa nie wchodzi do powierzchni użytkowej. Przekrój i obliczenia U są prostopadłe do połaci; pokrycie i łaty nad szczeliną wentylacyjną pomija się.'],
+  pay:['Opłacalność docieplenia','Kalkulator dokłada wybraną grubość wełny (na strop od strony strychu, na skosie pod krokwiami) i porównuje roczne straty ciepła przez przegrodę: różnica U × powierzchnia × stopniodni. Zużycie energii to te straty podzielone przez sprawność źródła (dla pompy ciepła przez SCOP). Zwrot prosty dzieli koszt przez roczną oszczędność; zwrot przy wzroście cen zakłada, że energia drożeje co roku o podany procent. Stopniodni ok. 3600 K·d to typowa wartość dla Polski przy 20 °C w domu. Każda kolejna warstwa daje mniej niż poprzednia, dlatego zwrot rośnie z grubością.'],
   dewplane:['Płaszczyzna punktu rosy','Fioletowa płaszczyzna pokazuje wysokość w przegrodzie, na której temperatura spada do punktu rosy powietrza z pokoju. Poniżej jest cieplej, powyżej zimniej. Paroizolacja powinna leżeć poniżej tej płaszczyzny, a kanały z wilgotnym powietrzem najlepiej też.'],
 };
 let popEl=null,popBtn=null;
@@ -1011,7 +1042,7 @@ function buildPages(views,sec){
   // nagłówek
   blocks.push({h:()=>118,d:(X,Y)=>{x.fillStyle=PC('--ink');x.font=FN(700,46);x.fillText('Kalkulator termiczny stropu',X,Y+44);x.font=FN(400,20);x.fillStyle=PC('--muted');x.textAlign='right';x.fillText(date,X+W,Y+20);x.fillText(S.mode==='roof'?'przegroda: skos poddasza użytkowego':'przegroda: piętro / nieogrzewany strych',X+W,Y+46);x.textAlign='left';
     x.fillStyle=PC('--accent');x.font=FN(600,26);x.fillText(fitText(x,V().name,W),X,Y+82);
-    x.fillStyle=PC('--muted');x.font=FN(400,20);x.fillText(S.mode==='roof'?`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · na zewnątrz ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · dach ${fmt(C.alpha,0)}° · wylewka → krokiew przy ściance ${fmt(C.hKnee,0)} cm`:`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · strych ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · wylewka → pas ${fmt(C.hScreed,1)} cm · podłoga ${fmt(C.floorT,1)} cm`,X,Y+110);
+    x.fillStyle=PC('--muted');x.font=FN(400,20);x.fillText(S.mode==='roof'?`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · na zewnątrz ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · dach ${fmt(C.alpha,0)}° · wylewka → krokiew przy ściance ${fmt(C.hKnee,0)} cm`:`Pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} % · strych ${fmt(C.te,0)} °C / ${fmt(C.rhe,0)} % · wylewka → belki ${fmt(C.hScreed,1)} cm · podłoga ${fmt(C.floorT,1)} cm`,X,Y+110);
     x.strokeStyle=PC('--line');x.lineWidth=2;x.beginPath();x.moveTo(X,Y+124);x.lineTo(X+W,Y+124);x.stroke();}});
   // kafelki
   blocks.push({h:()=>132,d:(X,Y)=>{const td=tileData(R);const g=14,tw=(W-g*5)/6;td.forEach((t,i)=>{const bx=X+i*(tw+g);x.fillStyle='#fafbfa';x.strokeStyle=PC('--line');x.lineWidth=1.5;rr(x,bx,Y,tw,124,10);x.fill();x.stroke();x.fillStyle=STC[t.cls];x.fillRect(bx,Y+10,6,104);
@@ -1030,8 +1061,9 @@ function buildPages(views,sec){
   const layerRows=()=>V().layers.map(l=>({l,M:MAT[l.type],sub:subline(l),items:(l.items||[]).map(it=>`${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`)}));
   const kvs=()=>{const b=R.barrier;const a=[['Współczynnik U',`${fmt(R.U,3)} W/m²K`,R.status.U],['U bez korekty / ΔUg',`${fmt(R.U0,3)} / ${fmt(R.dUg,4)}`],['Opór całkowity RT',`${fmt(R.RT,2)} m²K/W`],['Izolacja łącznie',`${fmt(R.wool,0)} cm`],
     ['Temperatura na folii',b?`${fmt(b.theta,1)} °C`:'brak',R.status.bar],['Punkt rosy w pokoju',`${fmt(R.dewIn,1)} °C`],['Izolacji pod folią',b?`${fmt(b.ratio*100,0)} %`:'–'],['Kondensacja (Glaser)',R.cond?`${fmt(R.cond.gday||0,0)} g/m²·doba`:'brak',R.status.cond],
-    ['Temp. powierzchni sufitu',`${fmt(R.thetaSi,1)} °C`],[`Strata przez ${fmt(C.area,0)} m²`,`${fmt(R.P,0)} W`],['Sezon grzewczy',`${fmt(R.kWh,0)} kWh/rok`],['Posadzka gotowa → pas',`${fmt(R.h0,1)} cm`],['Zabudowa pod pasem',`${fmt(R.yAnchor,1)} cm`],['Pokój w świetle',`${fmt(R.clear,1)} cm`,R.status.h],['Ciężar warstw',`${fmt(R.kg,1)} kg/m² (limit ${fmt(C.loadMax,0)})`,R.status.load]];
+    ['Temp. powierzchni sufitu',`${fmt(R.thetaSi,1)} °C`],[`Strata przez ${fmt(C.area,0)} m²`,`${fmt(R.P,0)} W`],['Sezon grzewczy',`${fmt(R.kWh,0)} kWh/rok`],['Posadzka gotowa → belki',`${fmt(R.h0,1)} cm`],['Zabudowa pod belkami',`${fmt(R.yAnchor,1)} cm`],['Pokój w świetle',`${fmt(R.clear,1)} cm`,R.status.h],['Ciężar warstw',`${fmt(R.kg,1)} kg/m² (limit ${fmt(C.loadMax,0)})`,R.status.load]];
     if(R.roof)a.splice(11,4,['Kąt dachu',`${fmt(C.alpha,0)}°`],['Zabudowa pod krokwią',`${fmt(R.yAnchor,1)} cm`],['Skos przy ściance',`${fmt(R.roof.hk,1)} cm`],['Od ścianki do 1,4 / 2,2 m',`${fmt(R.roof.d140,0)} / ${fmt(R.roof.d220,0)} cm`]);
+    {const pb=payback(V().layers,C,R.mode,C.addT);a.push([`Dokładka +${fmt(C.addT,0)} cm: oszczędność / koszt`,`${fmt(pb.save,0)} zł/rok / ${fmt(pb.invest,0)} zł`],[`Zwrot dokładki (wzrost cen ${fmt(C.growth,1)} %/rok)`,isFinite(pb.grown)&&pb.grown<200?`${fmt(pb.grown,pb.grown<10?1:0)} lat`:'nie zwraca się']);}
     if(R.hangers)a.push(['Wieszaki rusztu',`${fmt(R.hangers.perM2,1)} szt./m²${R.hangers.pierce?', przez folię':', nad folią'}`,R.hangers.pierce?'warn':null]);return a;};
   const layH=()=>40+layerRows().reduce((s,r)=>s+58+r.items.length*24,0);
   const kvH=()=>40+kvs().length*31;
@@ -1039,7 +1071,7 @@ function buildPages(views,sec){
     head(S.mode==='roof'?'Warstwy od zewnątrz do pokoju':'Warstwy od strychu do pokoju',X,Y);let yy=Y+44;
     for(const r of layerRows()){x.fillStyle=r.M.color;x.fillRect(X,yy,12,44);x.strokeStyle='rgba(0,0,0,.2)';x.lineWidth=1;x.strokeRect(X,yy,12,44);
       x.fillStyle=PC('--ink');x.font=FN(500,20);const tt=tcm(r.l.t);x.font=FM(500,19);const tw=x.measureText(tt).width;x.fillText(tt,X+colW-tw,yy+18);
-      x.font=FN(500,20);x.fillText(fitText(x,r.M.label,colW-tw-40),X+24,yy+18);x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,r.sub,colW-30),X+24,yy+40);yy+=58;
+      x.font=FN(500,20);x.fillText(fitText(x,lname(r.l),colW-tw-40),X+24,yy+18);x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,r.sub,colW-30),X+24,yy+40);yy+=58;
       for(const it of r.items){x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,'• '+it,colW-40),X+36,yy+4);yy+=24;}}
     const X2=X+colW+40;head('Wyniki',X2,Y);yy=Y+44;
     for(const [k,v,st] of kvs()){x.fillStyle=PC('--muted');x.font=FN(400,18.5);x.fillText(k,X2,yy+18);x.font=FM(500,18);const vw=x.measureText(v).width;x.fillStyle=st?STC[st]:PC('--ink');x.fillText(v,X2+colW-vw,yy+18);
