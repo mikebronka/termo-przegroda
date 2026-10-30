@@ -181,6 +181,20 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
 .fld output{height:32px;display:flex;align-items:center;padding:0 8px;border-radius:7px;background:var(--sunk);font-family:var(--font-m);font-variant-numeric:tabular-nums}
 .lb.dew{border-color:var(--dew);color:var(--dew)}
 .mode-roof .only-flat,.mode-flat .only-roof{display:none!important}
+.mode-ceil .no-ceil,.mode-ceil .only-flat,.mode-ceil .only-roof{display:none!important}
+.app:not(.mode-ceil) .only-ceil{display:none!important}
+.chk{grid-column:1/-1;display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer;user-select:none}
+.chk input{accent-color:var(--accent)}
+.clist{display:grid}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.crow:last-child{border-bottom:0}
+.crow b{grid-column:1/-1;font-weight:500;font-size:12.5px}
+.crow small{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.45}
+.cmp.mat td{vertical-align:top}
+.cmp.mat td small{display:block;color:var(--muted);font-family:var(--font-d);font-size:11.5px;margin-top:2px}
+.cmp.mat td:last-child{white-space:nowrap}
+#cplan svg{display:block;margin:0 auto;max-width:none}
+.sechead .seg button{padding:4px 10px}
 .seg.mode button{padding:5px 11px}
 .headl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
 .legend span{display:inline-flex;align-items:center;gap:5px}
@@ -216,7 +230,7 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
 <div class="app mode-flat" id="app">
   <header class="head">
     <div class="headl"><div class="brand"><h1>Kalkulator termiczny stropu</h1><span id="brandsub">przegroda: piętro / nieogrzewany strych</span></div>
-    <div class="seg mode" id="mode" role="group" aria-label="Rodzaj przegrody"><button data-mode="flat" class="on">Strop pod strychem</button><button data-mode="roof">Poddasze użytkowe</button></div></div>
+    <div class="seg mode" id="mode" role="group" aria-label="Rodzaj przegrody"><button data-mode="flat" class="on">Strop pod strychem</button><button data-mode="roof">Poddasze użytkowe</button><button data-mode="ceil">Sufit podwieszany</button></div></div>
     <div class="vbar">
       <select id="vsel" aria-label="Wariant"></select>
       <input id="vname" aria-label="Nazwa wariantu">
@@ -227,7 +241,7 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
     </div>
   </header>
 
-  <aside class="left side panel" aria-label="Warunki i warstwy">
+  <aside class="left side panel no-ceil" aria-label="Warunki i warstwy">
     <section class="sec">
       <h2>Warunki obliczeniowe</h2>
       <div class="grid2">
@@ -269,9 +283,9 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
     </section>
   </aside>
 
-  <section class="sum" aria-label="Skrót wyników"><div class="tiles" id="tiles"></div></section>
+  <section class="sum no-ceil" aria-label="Skrót wyników"><div class="tiles" id="tiles"></div></section>
 
-  <main class="view">
+  <main class="view no-ceil">
     <div class="panel v3d">
       <div class="toolbar">
         <div class="seg" id="cams" role="group" aria-label="Widok">
@@ -306,7 +320,30 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
     </div>
   </main>
 
-  <aside class="right side panel" aria-label="Wyniki"><div class="rgrid" id="details"></div></aside>
+  <aside class="right side panel no-ceil" aria-label="Wyniki"><div class="rgrid" id="details"></div></aside>
+
+  <aside class="left side panel only-ceil" aria-label="Ustawienia sufitu"><div id="cform"></div></aside>
+  <section class="sum only-ceil" aria-label="Skrót wyników sufitu"><div class="tiles" id="ctiles"></div></section>
+  <main class="view only-ceil">
+    <div class="panel v3d">
+      <div class="toolbar">
+        <div class="seg" id="ccams" role="group" aria-label="Widok sufitu"><button data-cc="above" class="on">Od strychu</button><button data-cc="below">Od pokoju</button><button data-cc="plan">Na wprost</button></div>
+        <label class="expl" for="cexplode">Rozsuń <input id="cexplode" type="range" min="0" max="25" step="1" value="0"></label>
+        <label class="tog"><input type="checkbox" data-cv="l2" checked> Warstwa 2</label>
+        <label class="tog"><input type="checkbox" data-cv="l1" checked> Warstwa 1</label>
+        <label class="tog"><input type="checkbox" data-cv="grid" checked> Ruszt</label>
+        <label class="tog"><input type="checkbox" data-cv="struct" checked> Konstrukcja</label>
+      </div>
+      <div class="stage" id="cstage"><div class="cap">Wyłącz warstwy, aby zajrzeć głębiej · przeciągnij, aby obrócić · kółko / dwa palce: zoom · Shift: przesuń</div></div>
+    </div>
+    <div class="panel secwrap">
+      <div class="sechead"><h3 class="h2l">Plan płyt i rusztu <button class="info" data-info="ceilPlan" aria-label="Wyjaśnienie">i</button></h3>
+        <div class="seg" id="ptabs" role="group" aria-label="Plan"><button data-p="l1">Warstwa 1</button><button data-p="l2" class="on">Warstwa 2</button><button data-p="grid">Ruszt</button></div></div>
+      <div id="cplan" style="overflow-x:auto"></div>
+      <div class="legend" id="clegend"></div>
+    </div>
+  </main>
+  <aside class="right side panel only-ceil" aria-label="Wyniki sufitu"><div class="rgrid" id="cright"></div></aside>
 </div>
 
 <script id="calc">
@@ -474,6 +511,117 @@ function payback(layers,C,mode,addT){
   return {U0:base.U,U1:after.U,heat,fuel,save,invest,simple,grown,life,barOk:!after.barrier||after.barrier.status!=='bad'};
 }
 function fmt(x,d=1){if(x==null||!isFinite(x))return '–';return x.toLocaleString('pl-PL',{minimumFractionDigits:d,maximumFractionDigits:d}).replace('-','−');}
+
+/* ---------- sufit podwieszany: obliczenia ---------- */
+const BOARDS={
+  gkb:{n:'GKB 12,5 – zwykła',t:1.25,kg:9.0,col:'#ecebe4'},
+  gkbi:{n:'GKBI 12,5 – impregnowana',t:1.25,kg:9.5,col:'#c5ddb9',wet:true},
+  gkf:{n:'GKF 12,5 – ogniochronna',t:1.25,kg:10.0,col:'#eccbc8'},
+  gkfi:{n:'GKFI 12,5 – ogniochronna impregnowana',t:1.25,kg:10.5,col:'#d6dbb4',wet:true},
+  hard:{n:'Utwardzona 12,5 (np. Diamant)',t:1.25,kg:12.5,col:'#c5d1e5',wet:true},
+  gkb15:{n:'GKB 15 – zwykła',t:1.5,kg:11.5,col:'#e6e3d8'}};
+const FMTS={'120x200':'120 × 200 cm','120x250':'120 × 250 cm','120x260':'120 × 260 cm','120x280':'120 × 280 cm','120x300':'120 × 300 cm'};
+const HANG={es:{n:'Wieszak bezpośredni ES',kg:25},non:{n:'Wieszak noniuszowy',kg:40},pret:{n:'Wieszak obrotowy z prętem',kg:25}};
+const STRUCT={wiazar:'Pasy dolne wiązarów',jetki:'Jętki',belki:'Belki stropu drewnianego',beton:'Strop betonowy / gęstożebrowy'};
+const CDEF={L:420,W:360,wet:false,struct:'wiazar',sp:95,bw:4.5,bh:15,bDir:'y',gap:10,grid:'double',hanger:'es',hMax:25,a:100,b:40,hs:90,
+  board:'gkb',fmt:'120x200',layers:2,trim:false,stagger:80,lOff:60,sOff:40,wool:15,foil:true,extra:0,
+  bOff:40,mo:30,go:40,ho:30,bar:300,s1:50,s2:17,aMax:100,hsMax:100,bMax:50,minPiece:25};
+const CD_KG=0.6;
+function ceilNum(c){const o={...CDEF,...c};const cl=(k,a,b)=>{let v=+o[k];if(!isFinite(v))v=CDEF[k];o[k]=Math.max(a,Math.min(b,v));};
+  cl('L',50,3000);cl('W',50,3000);cl('sp',20,300);cl('a',20,300);cl('b',15,100);cl('hs',20,300);cl('gap',0,100);cl('bw',2,30);cl('bh',4,60);
+  cl('stagger',0,1000);cl('lOff',0,120);cl('sOff',0,1000);cl('wool',0,80);cl('extra',0,200);cl('hMax',1,500);cl('bOff',0,300);cl('mo',0,300);cl('go',1,100);cl('ho',0,300);
+  cl('s1',5,100);cl('s2',5,100);cl('minPiece',0,200);o.layers=+o.layers===1?1:2;o.bar=+o.bar===400?400:300;if(!BOARDS[o.board])o.board='gkb';if(!FMTS[o.fmt])o.fmt='120x200';if(!HANG[o.hanger])o.hanger='es';if(!STRUCT[o.struct])o.struct='wiazar';return o;}
+function ffBoards(pieces,cap,Wb){
+  const groups={};for(const p of pieces){const k=Math.round(p.w*2)/2;(groups[k]=groups[k]||[]).push(p.len);}
+  let n=0;for(const [w,lens] of Object.entries(groups)){const lanes=Math.max(1,Math.floor((Wb+0.01)/(+w)));const bins=[];lens.sort((a,b)=>b-a);
+    for(const p of lens){let ok=false;for(const bn of bins){for(let i=0;i<bn.length;i++){if(bn[i]>=p-0.01){bn[i]-=p;ok=true;break;}}if(ok)break;}if(!ok){const bn=Array(lanes).fill(cap);bn[0]-=p;bins.push(bn);}}
+    n+=bins.length;}
+  return n;}
+function ceilCalc(c0){
+  const c=ceilNum(c0);const wood=c.struct!=='beton',dbl=c.grid==='double';const B=BOARDS[c.board];
+  const [Wb,Lb]=c.fmt.split('x').map(Number);const b=c.b;
+  const vAlongY=wood?(dbl?c.bDir==='y':c.bDir!=='y'):c.bDir==='y';
+  const U=vAlongY?c.L:c.W,V=vAlongY?c.W:c.L;
+  const P=(u,v)=>vAlongY?{x:u,y:v}:{x:v,y:u};
+  const Le=c.trim?Math.max(b,Math.floor(Lb/b+1e-6)*b):Lb;
+  const go=c.go%b||0;
+  const seq=(o,s,max)=>{const r=[];if(s<=0)return r;for(let x=o;x<max-0.5;x+=s)if(x>0.5)r.push(x);return r;};
+  const bear=seq(c.go,b,U);
+  const mains=dbl?seq(c.mo,c.a,V):[];
+  const beams=wood?(dbl?seq(c.bOff,c.sp,U):seq(c.bOff,c.sp,V)):[];
+  const hangers=[];
+  if(dbl){const us=wood?beams:seq(c.ho,c.hs,U);for(const u of us)for(const v of mains)hangers.push({u,v});}
+  else{const vs=wood?beams:seq(c.ho,c.hs,V);for(const u of bear)for(const v of vs)hangers.push({u,v});}
+  const carrier=dbl?c.a:b, hangSp=wood?c.sp:c.hs;
+  // płyty
+  const t=B.t;const layers=[];
+  const mkRows=r=>{const out=[];let k=Math.floor(-r/Wb)-1;for(let i=0;i<10000;i++,k++){const v0=r+k*Wb,v1=v0+Wb;if(v0>=V-0.5)break;const a=Math.max(0,v0),e=Math.min(V,v1);if(e-a>0.5)out.push({v0:a,v1:e,w:e-a});}return out;};
+  const defs=c.layers===2?[{key:'l1',name:'Warstwa 1 (przykręcana do rusztu)',r:0,s0:0},{key:'l2',name:'Warstwa 2 (widoczna)',r:c.lOff%Wb,s0:c.sOff}]:[{key:'l1',name:'Warstwa płyt',r:0,s0:0}];
+  for(const d of defs){const rows=mkRows(d.r);rows.forEach((row,i)=>{const s=i*c.stagger+d.s0;let base=((s+go)%Le+Le)%Le;if(base<0.5)base=Le;const joints=[];for(let u=base;u<U-0.5;u+=Le)joints.push(u);
+      const edges=[0,...joints,U];row.joints=joints;row.pieces=[];for(let j=0;j<edges.length-1;j++)row.pieces.push({u0:edges[j],u1:edges[j+1],len:edges[j+1]-edges[j],w:row.w});});
+    layers.push({...d,rows});}
+  // kontrola styków
+  const onBear=u=>bear.some(x=>Math.abs(x-u)<0.6);
+  const segs=[];layers.forEach((L,li)=>L.rows.forEach((row,ri)=>row.joints.forEach(u=>segs.push({li,ri,u,v0:row.v0,v1:row.v1,flags:new Set()}))));
+  const unsup=segs.filter(s=>!onBear(s.u));unsup.forEach(s=>s.flags.add('unsup'));
+  let rowAlign=0;for(const s1 of segs)for(const s2 of segs){if(s1.li!==s2.li||s2.ri!==s1.ri+1)continue;if(Math.abs(s1.u-s2.u)<b-0.5){s1.flags.add('row');s2.flags.add('row');rowAlign++;}}
+  let layerAlign=0;if(layers.length===2){for(const s1 of segs)for(const s2 of segs){if(s1.li!==0||s2.li!==1)continue;const ov=Math.min(s1.v1,s2.v1)-Math.max(s1.v0,s2.v0);if(ov>1&&Math.abs(s1.u-s2.u)<39.5){s1.flags.add('layer');s2.flags.add('layer');layerAlign++;}}}
+  let longMin=Infinity;if(layers.length===2){const bd=L=>L.rows.map(r=>r.v1).filter(v=>v<V-0.5);for(const a of bd(layers[0]))for(const e of bd(layers[1]))longMin=Math.min(longMin,Math.abs(a-e));}
+  const allPieces=layers.flatMap((L,li)=>L.rows.flatMap(r=>r.pieces.map(p=>({...p,li}))));
+  const small=allPieces.filter(p=>p.len<c.minPiece-0.01);
+  const narrow=layers.flatMap(L=>L.rows).filter(r=>r.w<15);
+  // ilość płyt
+  const boards=layers.map(L=>ffBoards(L.rows.flatMap(r=>r.pieces),Le,Wb));
+  const nBoards=boards.reduce((a,x)=>a+x,0);const area=c.L*c.W/1e4;
+  const boardArea=nBoards*Wb*Lb/1e4;const waste=boardArea>0?(boardArea-area*layers.length)/boardArea*100:0;
+  // obciążenia
+  const qParts=[['Płyty',B.kg*layers.length],['Ruszt i wieszaki',CD_KG/(b/100)+(dbl?CD_KG/(c.a/100):0)+0.3],['Folia',c.foil?0.2:0],['Wełna leżąca na suficie',c.wool*0.2],['Dodatkowe',c.extra]];
+  const q=qParts.reduce((a,x)=>a+x[1],0);const trib=carrier/100*hangSp/100;const hangerLoad=q*trib;
+  // materiały
+  const perim=2*(c.L+c.W);const bearTot=bear.length*V,mainTot=mains.length*U;
+  const joinsOf=(n,len)=>n*Math.max(0,Math.ceil(len/c.bar-1e-6)-1);
+  const cdBars=Math.ceil((bearTot+mainTot)/c.bar*1.05);const udBars=Math.ceil(perim/c.bar*1.05);
+  const tn=x=>[25,35,45,55,70].find(l=>l>=x)||70;
+  const tScrew=[tn(t*10+10),tn(t*20+10)];
+  const scr=sp=>Math.ceil(bear.length*(Math.ceil(V/sp)+1)*1.1/50)*50;
+  const finalRows=layers[layers.length-1].rows;
+  const tape=((finalRows.length-1)*U+finalRows.reduce((a,r)=>a+r.joints.length*r.w,0))/100;
+  const mats=[[`Płyty ${B.n}, ${FMTS[c.fmt]}`,nBoards,'szt.',layers.length===2?`warstwa 1: ${boards[0]}, warstwa 2: ${boards[1]}`:''],
+    [`Profil CD 60 (${c.bar/100} m)`,cdBars,'szt.',`${Math.round((bearTot+mainTot)/100)} mb + 5 %`],
+    [`Profil UD 28 (${c.bar/100} m)`,udBars,'szt.',`obwód ${Math.round(perim/100*10)/10} mb`],
+    ['Łącznik wzdłużny CD',joinsOf(bear.length,V)+joinsOf(mains.length,U),'szt.','']];
+  if(dbl)mats.push(['Łącznik krzyżowy CD',bear.length*mains.length,'szt.','']);
+  mats.push([HANG[c.hanger].n,hangers.length,'szt.','']);
+  if(c.hanger==='pret')mats.push(['Pręt z oczkiem do wieszaka',hangers.length,'szt.',`dł. ok. ${Math.ceil(c.gap+10)} cm`]);
+  mats.push(wood?['Wkręty do drewna (2 na wieszak)',hangers.length*2,'szt.','w belkę, nie w deskowanie']:['Kotwy do betonu (1 na wieszak)',hangers.length,'szt.','']);
+  mats.push(['Kołki szybkiego montażu do UD',Math.ceil(perim/60),'szt.','co ok. 60 cm'],['Taśma akustyczna pod UD',Math.ceil(perim/100),'mb','']);
+  if(layers.length===2)mats.push([`Wkręty TN 3,5 × ${tScrew[0]} (warstwa 1)`,scr(c.s1),'szt.',`co ${c.s1} cm`],[`Wkręty TN 3,5 × ${tScrew[1]} (warstwa 2)`,scr(c.s2),'szt.',`co ${c.s2} cm`]);
+  else mats.push([`Wkręty TN 3,5 × ${tScrew[0]}`,scr(c.s2),'szt.',`co ${c.s2} cm`]);
+  if(c.foil)mats.push(['Folia paroizolacyjna',Math.ceil(area*1.15),'m²','z zakładami 10 cm'],['Taśma do folii',Math.ceil(perim/100+area/2),'mb','obwód + zakłady']);
+  mats.push(['Taśma zbrojąca do spoin',Math.ceil(tape*1.05),'mb','spoiny warstwy widocznej'],['Masa do spoinowania',Math.ceil(area*(0.4+(layers.length-1)*0.2)),'kg','orientacyjnie']);
+  // kontrola
+  const bLim=c.wet?Math.min(40,c.bMax):c.bMax;
+  const st=(ok,warn)=>ok?'ok':warn?'warn':'bad';
+  const checks=[
+    {k:'hang',label:'Obciążenie wieszaka',val:`${fmt(hangerLoad,1)} kg / ${fmt(c.hMax,0)} kg`,st:hangerLoad<=c.hMax?'ok':'bad',
+      note:hangerLoad<=c.hMax?`Pole na wieszak ${fmt(carrier,0)} × ${fmt(hangSp,0)} cm, ciężar sufitu ${fmt(q,1)} kg/m².`:'Zmniejsz rozstaw profili głównych albo wieszaków, albo wybierz mocniejszy wieszak.'},
+    {k:'hs',label:dbl?'Rozstaw wieszaków na profilu głównym':'Rozstaw wieszaków',val:`${fmt(hangSp,0)} cm (max ${fmt(c.hsMax,0)})`,st:st(hangSp<=c.hsMax,true),note:hangSp<=c.hsMax?'':'Dodaj wieszaki między belkami albo sprawdź tabelę producenta dla tego obciążenia.'}];
+  if(dbl)checks.push({k:'a',label:'Rozstaw profili głównych',val:`${fmt(c.a,0)} cm (max ${fmt(c.aMax,0)})`,st:st(c.a<=c.aMax,true),note:''});
+  checks.push({k:'b',label:'Rozstaw profili nośnych',val:`${fmt(b,0)} cm (max ${fmt(bLim,0)})`,st:st(b<=bLim,true),note:c.wet&&b>40?'W pomieszczeniach mokrych profile nośne co 40 cm.':''},
+    {k:'unsup',label:'Krótkie krawędzie na profilach',val:unsup.length?`${unsup.length} bez podparcia`:'wszystkie na profilu',st:unsup.length?'bad':'ok',
+      note:unsup.length?`Długość płyty ${fmt(Le,0)} cm nie jest wielokrotnością rozstawu ${fmt(b,0)} cm. Wybierz inny format albo włącz skracanie płyt.`:''},
+    {k:'row',label:'Mijanie styków w warstwie',val:rowAlign?`${rowAlign} w jednej linii`:'przesunięte',st:rowAlign?'warn':'ok',note:rowAlign?`Styki sąsiednich rzędów muszą być przesunięte o co najmniej ${fmt(b,0)} cm. Zmień przesunięcie styków w rzędach.`:''});
+  if(layers.length===2)checks.push({k:'layer',label:'Mijanie styków między warstwami',val:layerAlign||longMin<30?`${layerAlign} styków nad stykami${longMin<30?', długie krawędzie za blisko':''}`:`długie co ${fmt(longMin,0)} cm`,st:layerAlign||longMin<30?'warn':'ok',
+    note:layerAlign||longMin<30?'Krótkie styki warstwy 2 przesuń o min. 40 cm, długie krawędzie o ok. 60 cm.':''});
+  checks.push({k:'small',label:'Małe kawałki płyt',val:small.length||narrow.length?`${small.length+narrow.length} szt.`:'brak',st:small.length||narrow.length?'warn':'ok',
+    note:small.length||narrow.length?`Kawałki krótsze niż ${fmt(c.minPiece,0)} cm albo paski węższe niż 15 cm trudno dobrze przykręcić. Przesuń układ.`:''});
+  if(c.wet)checks.push({k:'wet',label:'Płyta do pomieszczenia mokrego',val:B.wet?'impregnowana':'zwykła',st:B.wet?'ok':'warn',note:B.wet?'':'W łazience użyj płyt impregnowanych (GKBI / GKFI).'});
+  if(wood)checks.push({k:'beam',label:'Obciążenie belek z sufitu',val:`${fmt(q,1)} kg/m² (limit ${fmt(typeof S!=='undefined'?S.C.loadMax:50,0)})`,st:q<=(typeof S!=='undefined'?S.C.loadMax:50)?'ok':'bad',note:'Wełna leżąca między belkami obciąża je dodatkowo.'});
+  const flagged=segs.filter(s=>s.flags.size);
+  return {c,wood,dbl,vAlongY,U,V,P,Wb,Lb,Le,b,t,B,bear,mains,beams,hangers,carrier,hangSp,layers,segs,flagged,unsup,rowAlign,layerAlign,longMin,small,narrow,
+    boards,nBoards,area,waste,q,qParts,trib,hangerLoad,mats,checks,perim};
+}
+
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -638,11 +786,11 @@ function bindConds(){document.querySelectorAll('[data-c]').forEach(inp=>{inp.val
 document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.c;if(!k)return;const v=parseFloat(String(e.target.value).replace(',','.'));if(!isFinite(v))return;S.C[k]=v;refresh();});
 document.querySelectorAll('[data-te]').forEach(b=>b.addEventListener('click',()=>{S.C.te=+b.dataset.te;bindConds();refresh();}));
 function renderVariants(){$('#vsel').innerHTML=modeVariants().map(v=>`<option value="${v.id}" ${v.id===S.active?'selected':''}>${esc(v.name)}</option>`).join('')+'<option value="__new">+ Nowy z przykładów…</option>';$('#vname').value=V().name;$('#vdel').disabled=modeVariants().length<2;}
-function applyMode(){const r=S.mode==='roof';const a=$('#app');a.classList.toggle('mode-roof',r);a.classList.toggle('mode-flat',!r);document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));$('#brandsub').textContent=r?'przegroda: skos poddasza użytkowego':'przegroda: piętro / nieogrzewany strych';}
-function setMode(m){if(S.mode===m)return;S.lastActive[S.mode]=S.active;S.mode=m;let mv=modeVariants();if(!mv.length){S.variants.push(...(m==='roof'?presetsRoof():presets()));mv=modeVariants();}const la=S.lastActive[m];S.active=(la&&mv.find(v=>v.id===la))?la:mv[0].id;ui.sel=null;ui.open.clear();closeInfo&&closeInfo();applyMode();renderPalette();renderVariants();renderCards();refresh(true);}
+function applyMode(){const m=S.mode,r=m==='roof';const a=$('#app');a.classList.toggle('mode-roof',r);a.classList.toggle('mode-flat',m==='flat');a.classList.toggle('mode-ceil',m==='ceil');document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===S.mode));$('#brandsub').textContent=m==='ceil'?'sufit podwieszany: ruszt i rozkład płyt':r?'przegroda: skos poddasza użytkowego':'przegroda: piętro / nieogrzewany strych';}
+function setMode(m){if(S.mode===m)return;S.lastActive[S.mode]=S.active;S.mode=m;let mv=modeVariants();if(!mv.length){S.variants.push(...presetsFor(m));mv=modeVariants();}const la=S.lastActive[m];S.active=(la&&mv.find(v=>v.id===la))?la:mv[0].id;ui.sel=null;ui.open.clear();closeInfo&&closeInfo();applyMode();renderPalette();renderVariants();renderCards();refresh(true);}
 document.querySelectorAll('#mode button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
-$('#vsel').addEventListener('change',e=>{if(e.target.value==='__new'){const add=S.mode==='roof'?presetsRoof():presets();add.forEach(v=>v.name+=' (przykład)');S.variants.push(...add);S.active=add[0].id;}else S.active=e.target.value;ui.sel=null;ui.open.clear();renderVariants();renderCards();refresh(true);});
-$('#vname').addEventListener('input',e=>{V().name=e.target.value||'Wariant';const o=$('#vsel').querySelector(`option[value="${S.active}"]`);if(o)o.textContent=V().name;renderDetails();save();});
+$('#vsel').addEventListener('change',e=>{if(e.target.value==='__new'){const add=presetsFor(S.mode);add.forEach(v=>v.name+=' (przykład)');S.variants.push(...add);S.active=add[0].id;}else S.active=e.target.value;ui.sel=null;ui.open.clear();renderVariants();renderCards();refresh(true);});
+$('#vname').addEventListener('input',e=>{V().name=e.target.value||'Wariant';const o=$('#vsel').querySelector(`option[value="${S.active}"]`);if(o)o.textContent=V().name;if(S.mode!=='ceil')renderDetails();save();});
 $('#vdup').addEventListener('click',()=>{const c=JSON.parse(JSON.stringify(V()));c.id=uid();c.name=V().name+' (kopia)';c.layers.forEach(l=>{l.id=uid();(l.items||[]).forEach(i=>i.id=uid());});S.variants.splice(S.variants.indexOf(V())+1,0,c);S.active=c.id;ui.sel=null;renderVariants();renderCards();refresh();toast('Skopiowano wariant');});
 let delArm=0;$('#vdel').addEventListener('click',()=>{if(modeVariants().length<2)return;if(Date.now()-delArm>3000){delArm=Date.now();$('#vdel').textContent='Na pewno?';setTimeout(()=>{$('#vdel').textContent='Usuń';},3000);return;}delArm=0;$('#vdel').textContent='Usuń';const i=S.variants.indexOf(V());S.variants.splice(i,1);S.active=modeVariants()[0].id;ui.sel=null;renderVariants();renderCards();refresh(true);toast('Usunięto wariant');});
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800);}
@@ -943,7 +1091,7 @@ function placeLabels(){const host=$('#lbls');if(!host)return;if(!G.labels){host.
   host.innerHTML=out.map(p=>`<div class="lb${p.sel?' sel':''}${p.dew?' dew':''}" style="left:${Math.min(w-140,p.x).toFixed(0)}px;top:${p.y.toFixed(0)}px">${esc(p.text)} <b>${p.th}</b></div>`).join('');}
 
 /* ---------- kopiowanie ---------- */
-$('#copy').addEventListener('click',()=>{const R=RES,C=S.C;const b=R.barrier;
+$('#copy').addEventListener('click',()=>{if(S.mode==='ceil'){copyTxt(ceilText());return;}const R=RES,C=S.C;const b=R.barrier;
   const lines=[`Kalkulator termiczny stropu – ${V().name}`,(S.mode==='roof'?'Warstwy od zewnątrz:':'Warstwy od strychu:'),...V().layers.map(l=>{const M=MAT[l.type];let s=`• ${lname(l)} – ${tcm(l.t)}`;const sub=subline(l);if(sub)s+=` (${sub})`;(l.items||[]).forEach(it=>{s+=`\n   – ${ITEM[it.kind].label} Ø${it.d} mm, oś ${fmt(it.h,1)} cm od spodu warstwy`;});return s;}),
    ``,`Warunki: pokój ${fmt(C.ti,0)} °C / ${fmt(C.rhi,0)} %, ${S.mode==='roof'?'na zewnątrz':'strych'} ${fmt(C.te,0)} °C`,
    `U = ${fmt(R.U,3)} W/m²K (WT ≤ 0,15)${R.status.U==='ok'?' – OK':' – za dużo'}`,
@@ -959,6 +1107,7 @@ $('#copy').addEventListener('click',()=>{const R=RES,C=S.C;const b=R.barrier;
 /* ---------- odświeżanie ---------- */
 let raf=0;
 function refresh(recam){
+  if(S.mode==='ceil'){renderCeilForm();refreshCeil(recam);return;}
   RES=calc(V());
   renderTiles(RES);
   $('#h0out').textContent=`${fmt(RES.h0,1)} cm`;$('#clearout').textContent=`${fmt(RES.clear,1)} cm`;
@@ -1108,15 +1257,16 @@ async function exportPDF(){
   btn.disabled=true;btn.textContent='Tworzę PDF…';
   try{
     try{await document.fonts.ready;}catch(e){}
+    let pages;if(S.mode==='ceil'){pages=await ceilPages(false);try{pages.forEach(p=>p.toDataURL('image/jpeg',0.3));}catch(e){pages=await ceilPages(true);}}else{
     let views=null;
     if(G.r){const ps=ui.sel,pl=ui.labels;ui.sel=null;ui.labels=true;build3D();const vw=Math.round((1654-2*78-24)/2);const vh=Math.round(vw*0.58);views=[capture3D('iso',vw,vh),capture3D('sec',vw,vh)].filter(Boolean);ui.sel=ps;ui.labels=pl;build3D();}
     let sec=null;try{sec=await sectionImage();}catch(e){sec=null;}
-    let pages=buildPages(views,sec);
-    try{pages.forEach(p=>p.toDataURL('image/jpeg',0.3));}catch(e){pages=buildPages(views,null);}
+    pages=buildPages(views,sec);
+    try{pages.forEach(p=>p.toDataURL('image/jpeg',0.3));}catch(e){pages=buildPages(views,null);}}
     const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
     pages.forEach((c,i)=>{if(i)doc.addPage();doc.addImage(c.toDataURL('image/jpeg',0.9),'JPEG',0,0,210,297);});
     const blob=doc.output('blob');
-    const name=`Kalkulator termiczny stropu - ${V().name}.pdf`.replace(/[\\/:*?"<>|]/g,'-');
+    const name=`${S.mode==='ceil'?'Sufit podwieszany':'Kalkulator termiczny stropu'} - ${V().name}.pdf`.replace(/[\\/:*?"<>|]/g,'-');
     if(DL)await DL.save({filename:name,data:blob});
     else{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);}
     toast(pages.length>1?`Zapisano PDF (${pages.length} strony)`:'Zapisano PDF');
@@ -1124,6 +1274,223 @@ async function exportPDF(){
   finally{btn.disabled=false;btn.textContent='Eksport PDF';}
 }
 $('#pdf').addEventListener('click',exportPDF);
+
+/* ---------- sufit podwieszany: interfejs ---------- */
+Object.assign(INFO,{
+  ceilStag:['Mijanie styków','Krótkie krawędzie płyt (styki poprzeczne) zawsze muszą wypadać na profilu nośnym. Gdy długość płyty jest wielokrotnością rozstawu profili (200 cm przy 40 cm), styki trafiają na profil bez docinania; płyta 260 cm wypada w połowie odstępu. W jednej warstwie styki sąsiednich rzędów przesuwa się o co najmniej jeden profil (40 cm), żeby nie tworzyły ciągłej linii. Druga warstwa jest przesunięta względem pierwszej: krótkie styki o co najmniej 40 cm, długie krawędzie o ok. pół szerokości płyty (60 cm). Wtedy żaden styk nie leży nad innym i sufit nie pęka na łączeniach.'],
+  ceilLoad:['Obciążenie wieszaka','Każdy wieszak niesie sufit z pola: rozstaw profili głównych × rozstaw wieszaków (w ruszcie pojedynczym: rozstaw profili × rozstaw wieszaków). Ciężar sufitu to płyty, ruszt, folia, wełna leżąca na płycie i dodatkowe obciążenie (lampy, okap). Domyślne nośności wieszaków są ostrożne. Do drewna: min. 2 wkręty na wieszak, w belkę, nie w deskowanie. Dokładne rozstawy dla swojego obciążenia weź z karty systemu producenta (np. Knauf D112, Rigips 4.30).'],
+  ceilGrid:['Ruszt','Ruszt podwójny: profile główne CD 60 wiszą na wieszakach w poprzek belek, profile nośne CD 60 leżą pod nimi co 40–50 cm i są spięte łącznikami krzyżowymi. Płyty montuje się poprzecznie do profili nośnych. Ruszt pojedynczy: profile CD wiszą bezpośrednio na wieszakach, w poprzek belek. Wzdłuż ścian biegnie profil UD 28 na taśmie akustycznej. Przy stropie betonowym wieszaki kotwi się w dowolnym miejscu, więc ich rozstaw wpisujesz sam.'],
+  ceilPlan:['Plan płyt','Rzut z góry, jak na rysunku budowlanym. Liczby to długość każdego kawałka płyty w cm (w przyciętych rzędach także szerokość). Przerywane fioletowe linie to styki drugiej warstwy, więc widać mijanie. Cienkie linie turkusowe to profile nośne. Czerwone linie to styki do poprawy: bez profilu pod spodem albo w jednej linii z sąsiednim stykiem.']
+});
+function presetsCeil(){const m=(n,o)=>({id:uid(),mode:'ceil',name:n,layers:[],c:{...CDEF,L:400,...o}});return [
+  m('Sypialnia – 2× GKB 120 × 200, wiązary',{}),
+  m('Łazienka – 2× GKBI, profile co 40',{L:300,W:240,wet:true,board:'gkbi'}),
+  m('Porównanie – płyty 120 × 260',{fmt:'120x260'})];}
+const CC=()=>{const v=V();v.c={...CDEF,...(v.c||{})};return v.c;};
+let CR=null,CV=null;
+Object.assign(ui,{cplan:'l2',cexp:0,cvis:{l2:true,l1:true,grid:true,struct:true},ccam:'above',cadv:false});
+
+/* formularz */
+function cIn(k,label,step){const c=CC();return `<div class="fld"><label for="cf_${k}">${label}</label><input id="cf_${k}" type="number" step="${step||1}" data-k="${k}" value="${c[k]}"></div>`;}
+function cSel(k,label,opts){const c=CC();return `<div class="fld"><label for="cf_${k}">${label}</label><select id="cf_${k}" data-k="${k}">${Object.entries(opts).map(([v,t])=>`<option value="${v}" ${String(c[k])===v?'selected':''}>${t}</option>`).join('')}</select></div>`;}
+function cChk(k,label){const c=CC();return `<label class="chk" for="cf_${k}"><input type="checkbox" id="cf_${k}" data-k="${k}" ${c[k]?'checked':''}> ${label}</label>`;}
+function renderCeilForm(){const c=CC();const wood=c.struct!=='beton',dbl=c.grid==='double';
+  const ib=k=>`<button class="info" data-info="${k}" aria-label="Wyjaśnienie">i</button>`;
+  let h=`<section class="sec"><h2>Pomieszczenie</h2><div class="grid2">${cIn('L','Długość, oś X [cm]')}${cIn('W','Szerokość, oś Y [cm]')}${cChk('wet','Pomieszczenie mokre (łazienka, pralnia)')}</div></section>`;
+  h+=`<section class="sec"><h2>Konstrukcja nad sufitem</h2><div class="grid2">${cSel('struct','Rodzaj',STRUCT)}${cSel('bDir',wood?'Belki biegną wzdłuż':'Profile nośne wzdłuż',{y:'osi Y (szerokości)',x:'osi X (długości)'})}
+    ${wood?cIn('sp','Rozstaw osiowy belek [cm]')+cIn('bw','Szerokość belki [cm]',0.5)+cIn('bh','Wysokość belki [cm]',0.5):''}${cIn('gap',wood?'Spód belek → góra rusztu [cm]':'Spód stropu → góra rusztu [cm]')}</div></section>`;
+  h+=`<section class="sec"><h2><span class="h2l">Ruszt ${ib('ceilGrid')}</span></h2><div class="grid2">${cSel('grid','Typ rusztu',{double:'Podwójny krzyżowy',single:'Pojedynczy'})}${cSel('hanger','Wieszaki',Object.fromEntries(Object.entries(HANG).map(([k,v])=>[k,v.n])))}
+    ${cIn('hMax','Nośność wieszaka [kg]')}${dbl?cIn('a','Rozstaw profili głównych [cm]'):''}${cIn('b','Rozstaw profili nośnych [cm]')}${!wood?cIn('hs','Rozstaw wieszaków [cm]'):''}</div></section>`;
+  h+=`<section class="sec"><h2><span class="h2l">Płyty ${ib('ceilStag')}</span></h2><div class="grid2">${cSel('board','Rodzaj płyty',Object.fromEntries(Object.entries(BOARDS).map(([k,v])=>[k,v.n])))}${cSel('fmt','Format',FMTS)}
+    ${cSel('layers','Warstwy',{1:'1 warstwa',2:'2 warstwy'})}${cIn('stagger','Przesunięcie styków w rzędach [cm]')}
+    ${+c.layers===2?cIn('lOff','Warstwa 2: długie krawędzie [cm]')+cIn('sOff','Warstwa 2: krótkie styki [cm]'):''}${cChk('trim','Skracaj płyty do wielokrotności rozstawu profili')}</div></section>`;
+  h+=`<section class="sec"><h2>Obciążenie</h2><div class="grid2">${cIn('wool','Wełna leżąca na suficie [cm]')}${cIn('extra','Dodatkowe [kg/m²]',0.5)}${cChk('foil','Folia paroizolacyjna na ruszcie')}</div>
+    <details class="adv" id="cadv" ${ui.cadv?'open':''}><summary>Ustawienia zaawansowane</summary><div class="grid2" style="margin-top:8px">
+    ${wood?cIn('bOff','Pierwsza belka od ściany [cm]'):cIn('ho','Pierwszy wieszak od ściany [cm]')}${dbl?cIn('mo','Pierwszy profil główny od ściany [cm]'):''}${cIn('go','Pierwszy profil nośny od ściany [cm]')}
+    ${cSel('bar','Długość profili',{300:'3 m',400:'4 m'})}${+c.layers===2?cIn('s1','Wkręty warstwy 1 co [cm]'):''}${cIn('s2',+c.layers===2?'Wkręty warstwy 2 co [cm]':'Wkręty co [cm]')}
+    ${cIn('hsMax','Max rozstaw wieszaków [cm]')}${dbl?cIn('aMax','Max rozstaw profili głównych [cm]'):''}${cIn('bMax','Max rozstaw profili nośnych [cm]')}${cIn('minPiece','Najkrótszy kawałek płyty [cm]')}</div>
+    <p class="note" style="margin-top:8px">Limity są orientacyjne. Dla swojego obciążenia sprawdź tabelę w karcie systemu producenta.</p></details></section>`;
+  $('#cform').innerHTML=h;}
+$('#cform').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k||e.target.type!=='number')return;const v=parseFloat(String(e.target.value).replace(',','.'));if(!isFinite(v))return;CC()[k]=v;refreshCeil();});
+$('#cform').addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;const c=CC();
+  if(e.target.type==='checkbox')c[k]=e.target.checked;else if(e.target.type==='number'){const v=parseFloat(String(e.target.value).replace(',','.'));if(isFinite(v))c[k]=v;return refreshCeil();}
+  else{c[k]=['layers','bar'].includes(k)?+e.target.value:e.target.value;if(k==='hanger')c.hMax=HANG[c.hanger].kg;if(k==='wet'&&c.wet&&c.b>40)c.b=40;}
+  if(k==='wet'&&c.wet&&c.b>40)c.b=40;
+  renderCeilForm();refreshCeil(['L','W','struct','grid','bDir'].includes(k));});
+$('#cform').addEventListener('toggle',e=>{if(e.target.id==='cadv')ui.cadv=e.target.open;},true);
+
+/* wyniki */
+function ceilTiles(R){const c=R.c;const iss=R.rowAlign+R.layerAlign+(R.longMin<30?1:0);
+  return [
+    {cls:'ok',k:'Powierzchnia',v:fmt(R.area,2),u:'m²',s:`${fmt(c.L,0)} × ${fmt(c.W,0)} cm`},
+    {cls:R.waste>25?'warn':'ok',k:'Płyty',v:String(R.nBoards),u:'szt.',s:`odpad ${fmt(R.waste,0)} %`},
+    {cls:R.hangerLoad<=c.hMax?'ok':'bad',k:'Obciążenie wieszaka',v:fmt(R.hangerLoad,1),u:'kg',s:`limit ${fmt(c.hMax,0)} kg · ${R.hangers.length} szt.`},
+    {cls:R.unsup.length?'bad':'ok',k:'Styki na profilach',v:R.unsup.length?String(R.unsup.length):'OK',u:R.unsup.length?'bez podparcia':'',s:R.unsup.length?'krótkie krawędzie w powietrzu':'wszystkie na profilu'},
+    {cls:iss?'warn':'ok',k:'Mijanie styków',v:iss?String(iss):'OK',u:iss?'do poprawy':'',s:iss?'styki w jednej linii':(R.layers.length===2?`długie krawędzie co ${fmt(R.longMin,0)} cm`:'rzędy przesunięte')},
+    {cls:'ok',k:'Ciężar sufitu',v:fmt(R.q,1),u:'kg/m²',s:R.wood?`na belkach, limit ${fmt(S.C.loadMax,0)}`:'na wieszakach'}];}
+function renderCeilTiles(R){$('#ctiles').innerHTML=ceilTiles(R).map(t=>`<div class="tile ${t.cls}"><div class="k">${t.k}</div><div class="v">${t.v}${t.u?` <small>${t.u}</small>`:''}</div><div class="s">${t.s}</div></div>`).join('');}
+function renderCeilRight(R){const pill=(s,t)=>`<span class="pill ${s}">${t||LBL[s]}</span>`;const ib=k=>`<button class="info" data-info="${k}" aria-label="Wyjaśnienie">i</button>`;
+  let h=`<section class="sec"><h2><span class="h2l">Kontrola ${ib('ceilLoad')}</span>${pill(R.checks.some(x=>x.st==='bad')?'bad':R.checks.some(x=>x.st==='warn')?'warn':'ok')}</h2><div class="clist">
+    ${R.checks.map(x=>`<div class="crow"><span>${x.label}</span>${pill(x.st)}<b class="num">${x.val}</b>${x.note?`<small>${x.note}</small>`:''}</div>`).join('')}</div></section>`;
+  h+=`<section class="sec"><h2>Zestawienie materiałów</h2><div class="cmpwrap"><table class="cmp mat"><thead><tr><th>Pozycja</th><th>Ilość</th></tr></thead><tbody>
+    ${R.mats.map(m=>`<tr style="cursor:default"><td>${m[0]}${m[3]?`<small>${m[3]}</small>`:''}</td><td>${m[1]} ${m[2]}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note" style="margin-top:8px">Do zamówienia dolicz 5–10 % zapasu. Ilości płyt liczone z cięcia na wymiar, z wykorzystaniem odcinków.</p></section>`;
+  h+=`<section class="sec"><h2>Ciężar sufitu</h2><dl class="kv">${R.qParts.filter(p=>p[1]>0).map(p=>`<dt>${p[0]}</dt><dd>${fmt(p[1],1)} kg/m²</dd>`).join('')}<dt><b>Razem</b></dt><dd><b>${fmt(R.q,1)} kg/m²</b></dd>
+    <dt>Pole na jeden wieszak</dt><dd>${fmt(R.trib,2)} m²</dd><dt>Ciężar sufitu łącznie</dt><dd>${fmt(R.q*R.area,0)} kg</dd></dl></section>`;
+  $('#cright').innerHTML=h;}
+
+/* plan płyt */
+function ceilPlanSVG(R,which,Wpx,print){
+  const c=R.c;const padT=34,padL=40,padR=10,padB=12;
+  const s=Math.max(0.05,Math.min((Wpx-padL-padR)/c.L,print?99:Math.max(0.4,(window.innerHeight*0.6)/c.W)));
+  const Wd=Math.ceil(padL+c.L*s+padR),Hd=Math.ceil(padT+c.W*s+padB);
+  const X=x=>padL+x*s,Y=y=>padT+y*s;
+  const box=(u0,u1,v0,v1)=>{const a=R.P(u0,v0),b=R.P(u1,v1);return {x:X(Math.min(a.x,b.x)),y:Y(Math.min(a.y,b.y)),w:Math.abs(b.x-a.x)*s,h:Math.abs(b.y-a.y)*s};};
+  const ln=(u,v0,v1)=>{const a=R.P(u,v0),b=R.P(u,v1);return `x1="${X(a.x).toFixed(1)}" y1="${Y(a.y).toFixed(1)}" x2="${X(b.x).toFixed(1)}" y2="${Y(b.y).toFixed(1)}"`;};
+  const lnV=(v,u0,u1)=>{const a=R.P(u0,v),b=R.P(u1,v);return `x1="${X(a.x).toFixed(1)}" y1="${Y(a.y).toFixed(1)}" x2="${X(b.x).toFixed(1)}" y2="${Y(b.y).toFixed(1)}"`;};
+  let g=`<rect x="${X(0)}" y="${Y(0)}" width="${c.L*s}" height="${c.W*s}" fill="var(--sunk)"/>`;
+  const fs=print?12:11.5;
+  if(which==='grid'){
+    for(const u of R.beams.length&&R.dbl?R.beams:[]){const r=box(u-c.bw/2,u+c.bw/2,0,R.V);g+=`<rect x="${r.x}" y="${r.y}" width="${Math.max(2,r.w)}" height="${r.h}" fill="#c39563" opacity=".55"/>`;}
+    for(const v of R.beams.length&&!R.dbl?R.beams:[]){const r=box(0,R.U,v-c.bw/2,v+c.bw/2);g+=`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${Math.max(2,r.h)}" fill="#c39563" opacity=".55"/>`;}
+    for(const u of R.bear)g+=`<line ${ln(u,0,R.V)} stroke="#8d989d" stroke-width="${Math.max(1.5,6*s*0.6)}"/>`;
+    for(const v of R.mains)g+=`<line ${lnV(v,0,R.U)} stroke="#4f5a5e" stroke-width="${Math.max(2.5,6*s)}"/>`;
+    for(const h of R.hangers){const p=R.P(h.u,h.v);g+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${print?4:3.6}" fill="#d9772b" stroke="var(--panel)" stroke-width="1"/>`;}
+  } else {
+    const li=which==='l2'?1:0;const L=R.layers[li]||R.layers[0];const col=R.B.col;
+    let labs='';for(const row of L.rows)for(const p of row.pieces){const r=box(p.u0,p.u1,row.v0,row.v1);
+      g+=`<rect x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" fill="${col}" stroke="#5d625e" stroke-width="1"/>`;
+      const lab=`${Math.round(p.len)}${row.w<R.Wb-0.5?` × ${Math.round(row.w)}`:''}`;const lw=lab.length*fs*0.62+8;if(r.w>lw+4&&r.h>18){const cy=r.y+Math.min(r.h/2,Math.max(13,r.h*0.28));labs+=`<rect x="${(r.x+r.w/2-lw/2).toFixed(1)}" y="${(cy-9).toFixed(1)}" width="${lw.toFixed(1)}" height="17" rx="3" fill="#ffffff" opacity=".85"/><text x="${(r.x+r.w/2).toFixed(1)}" y="${(cy+4).toFixed(1)}" font-size="${fs}" text-anchor="middle" fill="#2e332f" font-family="IBM Plex Mono, monospace">${lab}</text>`;}}
+    for(const u of R.bear)g+=`<line ${ln(u,0,R.V)} stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity=".55"/>`;
+    const other=R.layers.length===2?R.layers[1-li]:null;
+    if(other){for(const row of other.rows){if(row.v1<R.V-0.5)g+=`<line ${lnV(row.v1,0,R.U)} stroke="var(--dew)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;for(const u of row.joints)g+=`<line ${ln(u,row.v0,row.v1)} stroke="var(--dew)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;}}
+    for(const sg of R.flagged.filter(x=>x.li===li))g+=`<line ${ln(sg.u,sg.v0,sg.v1)} stroke="var(--bad)" stroke-width="3.5" stroke-linecap="round"/>`;
+    g+=labs;
+  }
+  g+=`<rect x="${X(0)}" y="${Y(0)}" width="${c.L*s}" height="${c.W*s}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  g+=`<text x="${X(c.L/2)}" y="${padT-12}" font-size="${fs}" text-anchor="middle" fill="var(--muted)">X: ${fmt(c.L,0)} cm</text>`;
+  g+=`<text transform="translate(${padL-12} ${Y(c.W/2)}) rotate(-90)" font-size="${fs}" text-anchor="middle" fill="var(--muted)">Y: ${fmt(c.W,0)} cm</text>`;
+  return {svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${Wd}" height="${Hd}" viewBox="0 0 ${Wd} ${Hd}" font-family="Archivo, system-ui, sans-serif" role="img" aria-label="Plan sufitu">${print?`<rect width="${Wd}" height="${Hd}" fill="#ffffff"/>`:''}${g}</svg>`,w:Wd,h:Hd};}
+function renderCeilPlan(){const R=CR;if(!R)return;if(R.layers.length<2&&ui.cplan==='l2')ui.cplan='l1';
+  document.querySelectorAll('#ptabs button').forEach(b=>{b.classList.toggle('on',b.dataset.p===ui.cplan);b.hidden=b.dataset.p==='l2'&&R.layers.length<2;});
+  const tl=$('#ptabs [data-p="l1"]');if(tl)tl.textContent=R.layers.length===2?'Warstwa 1':'Płyty';
+  const host=$('#cplan');const W=Math.max(300,host.clientWidth);host.innerHTML=ceilPlanSVG(R,ui.cplan,W,false).svg;
+  const c=R.c;$('#clegend').innerHTML=ui.cplan==='grid'?
+    `<span><i style="border-color:#4f5a5e;border-top-width:4px"></i>profile główne${R.dbl?` co ${fmt(c.a,0)} cm`:''}</span><span><i style="border-color:#8d989d;border-top-width:3px"></i>profile nośne co ${fmt(R.b,0)} cm</span>${R.wood?`<span><i style="border-color:#c39563;border-top-width:4px"></i>${STRUCT[c.struct].toLowerCase()} co ${fmt(c.sp,0)} cm</span>`:''}<span><i style="border-color:#d9772b;border-top-width:6px;border-radius:3px;width:6px"></i>wieszaki: ${R.hangers.length} szt.</span>`:
+    `<span><i style="border-color:#5d625e"></i>krawędzie płyt, liczby w cm</span><span><i style="border-color:var(--accent);border-top-style:dotted"></i>profile nośne</span>${R.layers.length===2?`<span><i style="border-color:var(--dew);border-top-style:dashed"></i>styki drugiej warstwy</span>`:''}<span><i style="border-color:var(--bad);border-top-width:4px"></i>styk do poprawy</span>`;}
+document.querySelectorAll('#ptabs button').forEach(b=>b.addEventListener('click',()=>{ui.cplan=b.dataset.p;renderCeilPlan();}));
+new ResizeObserver(()=>{if(S.mode==='ceil'&&CR)renderCeilPlan();}).observe($('#cplan'));
+
+/* widok 3D sufitu */
+function makeViewer(stage){
+  if(!window.THREE){stage.insertAdjacentHTML('beforeend','<div class="nogl">Nie udało się wczytać biblioteki 3D. Plan i obliczenia działają normalnie.</div>');return null;}
+  const v={dirty:true,goal:null};
+  try{v.r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});}catch(e){stage.insertAdjacentHTML('beforeend','<div class="nogl">Ta przeglądarka nie obsługuje WebGL. Plan i obliczenia działają normalnie.</div>');return null;}
+  v.r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));stage.insertBefore(v.r.domElement,stage.firstChild);
+  v.scene=new THREE.Scene();v.cam=new THREE.PerspectiveCamera(34,1,1,50000);
+  v.scene.add(new THREE.HemisphereLight(0xffffff,0x9aa09c,0.85));const d1=new THREE.DirectionalLight(0xffffff,0.55);d1.position.set(400,700,500);v.scene.add(d1);const d2=new THREE.DirectionalLight(0xffffff,0.5);d2.position.set(-300,-600,-250);v.scene.add(d2);
+  v.root=new THREE.Group();v.scene.add(v.root);v.orb={theta:-0.6,phi:2.3,radius:900,target:new THREE.Vector3()};
+  const cv=v.r.domElement;let ptrs=new Map(),last=null,pinch=null;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY,shift:e.shiftKey||e.button===2};v.goal=null;});
+  cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)v.orb.radius=Math.max(60,Math.min(20000,v.orb.radius*pinch/d));pinch=d;v.dirty=true;return;}
+    const dx=e.clientX-last.x,dy=e.clientY-last.y;last.x=e.clientX;last.y=e.clientY;
+    if(last.shift){const k=v.orb.radius/700;const right=new THREE.Vector3(Math.cos(v.orb.theta),0,-Math.sin(v.orb.theta));v.orb.target.addScaledVector(right,-dx*k);v.orb.target.y+=dy*k;}
+    else{v.orb.theta-=dx*0.008;v.orb.phi=Math.max(0.05,Math.min(Math.PI-0.05,v.orb.phi-dy*0.008));}
+    v.dirty=true;document.querySelectorAll('#ccams button').forEach(b=>b.classList.remove('on'));});
+  const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('wheel',e=>{e.preventDefault();v.orb.radius=Math.max(60,Math.min(20000,v.orb.radius*Math.exp(e.deltaY*0.0012)));v.goal=null;v.dirty=true;},{passive:false});
+  v.place=(cam,o)=>{cam.position.set(o.target.x+o.radius*Math.sin(o.phi)*Math.sin(o.theta),o.target.y+o.radius*Math.cos(o.phi),o.target.z+o.radius*Math.sin(o.phi)*Math.cos(o.theta));cam.lookAt(o.target);};
+  new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;v.r.setSize(w,h,false);v.cam.aspect=w/h;v.cam.updateProjectionMatrix();v.dirty=true;}).observe(stage);
+  const loop=()=>{requestAnimationFrame(loop);if(v.goal){const o=v.orb,q=v.goal;let done=true;for(const k of ['theta','phi','radius']){const d=q[k]-o[k];if(Math.abs(d)>1e-3){o[k]+=d*0.16;done=false;}}o.target.lerp(q.target,0.16);if(o.target.distanceTo(q.target)>0.05)done=false;if(done)v.goal=null;v.dirty=true;}
+    if(!v.dirty)return;v.dirty=false;v.place(v.cam,v.orb);v.r.render(v.scene,v.cam);};loop();
+  v.go=(g,instant)=>{if(instant){Object.assign(v.orb,{theta:g.theta,phi:g.phi,radius:g.radius});v.orb.target.copy(g.target);v.dirty=true;}else v.goal=g;};
+  v.snap=(g,w,h)=>{const ow=v.r.domElement.width,oh=v.r.domElement.height;const pr=v.r.getPixelRatio();v.r.setPixelRatio(1);v.r.setSize(w,h,false);const cam=new THREE.PerspectiveCamera(34,w/h,1,50000);v.place(cam,g);v.r.render(v.scene,cam);
+    const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#f2f4f2';x.fillRect(0,0,w,h);x.drawImage(v.r.domElement,0,0,w,h);
+    v.r.setPixelRatio(pr);v.r.setSize(ow/pr,oh/pr,false);v.dirty=true;return c;};
+  return v;}
+function ceilCamGoal(k){const c=CR?CR.c:CDEF;const S0=Math.max(c.L,c.W);const h=(CR?CR.t*CR.layers.length:2.5)+12+(c.gap||10);
+  const P={below:{theta:-0.62,phi:Math.PI-0.95,radius:S0*2.05},above:{theta:-0.62,phi:0.95,radius:S0*2.05},plan:{theta:0.0001,phi:Math.PI-0.02,radius:S0*1.7}}[k]||{theta:-0.62,phi:0.95,radius:S0*2.05};
+  const asp=CV&&CV.cam?CV.cam.aspect:1.6;if(asp<1.25)P.radius*=Math.pow(1.25/asp,0.9);
+  return {...P,target:new THREE.Vector3(0,h/2,0)};}
+function ceilCam(k,instant){if(!CV)return;ui.ccam=k;document.querySelectorAll('#ccams button').forEach(b=>b.classList.toggle('on',b.dataset.cc===k));CV.go(ceilCamGoal(k),instant);}
+document.querySelectorAll('#ccams button').forEach(b=>b.addEventListener('click',()=>ceilCam(b.dataset.cc)));
+$('#cexplode').addEventListener('input',e=>{ui.cexp=+e.target.value;buildCeil3D();});
+document.querySelectorAll('[data-cv]').forEach(b=>b.addEventListener('change',()=>{ui.cvis[b.dataset.cv]=b.checked;buildCeil3D();}));
+const cMat={};function cm(col,o={}){const k=col+'|'+(o.op||1)+'|'+(o.metal||0);if(cMat[k])return cMat[k];const m=new THREE.MeshStandardMaterial({color:col,roughness:o.rough??0.85,metalness:o.metal||0,transparent:(o.op||1)<1,opacity:o.op||1,depthWrite:(o.op||1)>=1,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});return cMat[k]=m;}
+const cEdge=new Map();function ce(op){if(!cEdge.has(op))cEdge.set(op,new THREE.LineBasicMaterial({color:0x2a2f2c,transparent:true,opacity:op}));return cEdge.get(op);}
+function buildCeil3D(){
+  if(!CV||!CR)return;const R=CR,c=R.c,root=CV.root;while(root.children.length){const o=root.children.pop();o.geometry&&o.geometry.dispose();}
+  const ox=-c.L/2,oz=-c.W/2;const e=ui.cexp,vis=ui.cvis;
+  const add=(x0,x1,y0,y1,z0,z1,m,edge)=>{if(x1-x0<0.05||y1-y0<0.01||z1-z0<0.05)return;const g=new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0);const me=new THREE.Mesh(g,m);me.position.set(ox+(x0+x1)/2,(y0+y1)/2,oz+(z0+z1)/2);root.add(me);
+    if(edge){const l=new THREE.LineSegments(new THREE.EdgesGeometry(g),ce(edge));l.position.copy(me.position);root.add(l);}};
+  const uv=(u0,u1,v0,v1)=>{const a=R.P(u0,v0),b=R.P(u1,v1);return [Math.min(a.x,b.x),Math.max(a.x,b.x),Math.min(a.y,b.y),Math.max(a.y,b.y)];};
+  const t=R.t,two=R.layers.length===2;
+  const ly=[];if(two){ly[1]=[0,t];ly[0]=[t+e,2*t+e];}else ly[0]=[0,t];
+  const top=(two?2*t:t)+(two?e:0);
+  const base=new THREE.Color(R.B.col);const col1=base.clone().lerp(new THREE.Color('#8f968f'),0.22);
+  R.layers.forEach((L,li)=>{const key=two?(li===0?'l1':'l2'):'l1';if(!vis[key])return;const [y0,y1]=ly[li];const m=cm('#'+(li===0&&two?col1:base).getHexString());
+    for(const row of L.rows)for(const p of row.pieces){const [x0,x1,z0,z1]=uv(p.u0+0.15,p.u1-0.15,row.v0+0.15,row.v1-0.15);add(x0,x1,y0,y1,z0,z1,m,0.35);}
+    for(const sg of R.flagged.filter(s=>s.li===li)){const [x0,x1,z0,z1]=uv(sg.u-0.9,sg.u+0.9,sg.v0,sg.v1);add(x0,x1,y0-0.25,y0-0.02,z0,z1,cm('#d0342c'),0);add(x0,x1,y1+0.02,y1+0.25,z0,z1,cm('#d0342c'),0);}});
+  const yf=top+e;if(c.foil&&vis.grid)add(0,c.L,yf,yf+0.25,0,c.W,cm('#e0705a',{op:0.22}),0);
+  const yb=yf+0.3+e,ym=yb+2.7+e,gTop=(R.dbl?ym+2.7:yb+2.7);const ySt=gTop+c.gap+e;
+  if(vis.grid){const st=cm('#aeb7bb',{metal:0.5,rough:0.45}),stM=cm('#8c969b',{metal:0.5,rough:0.45});
+    for(const u of R.bear){const [x0,x1,z0,z1]=uv(u-3,u+3,0,R.V);add(x0,x1,yb,yb+2.7,z0,z1,st,0.3);}
+    for(const v of R.mains){const [x0,x1,z0,z1]=uv(0,R.U,v-3,v+3);add(x0,x1,ym,ym+2.7,z0,z1,stM,0.3);}
+    const ud=cm('#c4cbce',{metal:0.4,rough:0.5});add(0,c.L,yb,yb+2.8,0,3,ud,0.25);add(0,c.L,yb,yb+2.8,c.W-3,c.W,ud,0.25);add(0,3,yb,yb+2.8,3,c.W-3,ud,0.25);add(c.L-3,c.L,yb,yb+2.8,3,c.W-3,ud,0.25);
+    const hm=cm('#d9772b',{metal:0.3,rough:0.5});for(const h of R.hangers){const p=R.P(h.u,h.v);add(p.x-0.8,p.x+0.8,gTop,ySt,p.y-1.4,p.y+1.4,hm,0);}}
+  if(vis.struct){if(R.wood){const wm=cm('#c9975f',{rough:0.75});for(const q of R.beams){const [x0,x1,z0,z1]=R.dbl?uv(q-c.bw/2,q+c.bw/2,0,R.V):uv(0,R.U,q-c.bw/2,q+c.bw/2);add(x0,x1,ySt,ySt+c.bh,z0,z1,wm,0.35);}}
+    else add(0,c.L,ySt,ySt+12,0,c.W,cm('#b9bdb9',{op:0.35}),0.25);}
+  const ol=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(c.L,0.01,c.W)),new THREE.LineBasicMaterial({color:0x56605b}));ol.position.set(0,-0.3,0);root.add(ol);
+  CV.dirty=true;}
+function ensureCeil(){if(!CV&&$('#cstage').clientWidth){CV=makeViewer($('#cstage'));}}
+let craf=0;
+function refreshCeil(recam){CR=ceilCalc(CC());renderCeilTiles(CR);renderCeilRight(CR);renderCeilPlan();ensureCeil();
+  cancelAnimationFrame(craf);craf=requestAnimationFrame(()=>{ensureCeil();buildCeil3D();if(CV&&(recam||!CV._init)){CV._init=true;ceilCam(ui.ccam,true);}});save();}
+
+/* kopiowanie i PDF */
+function ceilText(){const R=CR,c=R.c;return [`Sufit podwieszany – ${V().name}`,`Pomieszczenie ${fmt(c.L,0)} × ${fmt(c.W,0)} cm (${fmt(R.area,2)} m²)${c.wet?', mokre':''}`,
+  `Konstrukcja: ${STRUCT[c.struct]}${R.wood?` co ${fmt(c.sp,0)} cm`:''}`,`Ruszt: ${R.dbl?`podwójny, profile główne co ${fmt(c.a,0)} cm`:'pojedynczy'}, profile nośne co ${fmt(c.b,0)} cm, ${HANG[c.hanger].n.toLowerCase()}`,
+  `Płyty: ${R.layers.length}× ${R.B.n}, ${FMTS[c.fmt]}${c.trim?` skracane do ${fmt(R.Le,0)} cm`:''}`,``,'Kontrola:',...R.checks.map(x=>`• ${x.label}: ${x.val} – ${LBL[x.st]}`),``,'Materiały:',...R.mats.map(m=>`• ${m[0]}: ${m[1]} ${m[2]}${m[3]?` (${m[3]})`:''}`)].join('\n');}
+function svgImg(svg){const s=svg.replace(/var\((--[a-z0-9-]+)\)/g,(m,k)=>PRINT[k]||'#000');return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);});}
+async function ceilPages(noPlans){
+  const R=CR,c=R.c;const PW=1654,PH=2339,M=78,W=PW-2*M,BOT=PH-M-44;const pages=[];let x,y;
+  const newPage=()=>{const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pages.push(cv);y=M;};newPage();
+  const date=new Date().toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'});
+  const head=(t,X,Y)=>{x.fillStyle=PC('--ink');x.font=FN(600,25);x.fillText(t,X,Y+22);};
+  let view=null;if(CV){buildCeil3D();view=CV.snap(ceilCamGoal('above'),W,Math.round(W*0.4));}
+  const keys=R.layers.length===2?['l1','l2']:['l1'];const half=(W-30)/2;const plans={};
+  if(!noPlans)for(const k of [...keys,'grid']){try{const o=ceilPlanSVG(R,k,Math.round(half),true);plans[k]={img:await svgImg(o.svg),w:o.w,h:o.h};}catch(e){}}
+  const blocks=[];
+  blocks.push({h:()=>118,d:(X,Y)=>{x.fillStyle=PC('--ink');x.font=FN(700,46);x.fillText('Sufit podwieszany',X,Y+44);x.font=FN(400,20);x.fillStyle=PC('--muted');x.textAlign='right';x.fillText(date,X+W,Y+20);x.fillText('Kalkulator termiczny stropu',X+W,Y+46);x.textAlign='left';
+    x.fillStyle=PC('--accent');x.font=FN(600,26);x.fillText(fitText(x,V().name,W),X,Y+82);x.fillStyle=PC('--muted');x.font=FN(400,20);
+    x.fillText(fitText(x,`${fmt(c.L,0)} × ${fmt(c.W,0)} cm · ${STRUCT[c.struct]}${R.wood?` co ${fmt(c.sp,0)} cm`:''} · ruszt ${R.dbl?'podwójny':'pojedynczy'} · ${R.layers.length}× ${R.B.n} ${FMTS[c.fmt]}`,W),X,Y+110);
+    x.strokeStyle=PC('--line');x.lineWidth=2;x.beginPath();x.moveTo(X,Y+124);x.lineTo(X+W,Y+124);x.stroke();}});
+  blocks.push({h:()=>132,d:(X,Y)=>{const td=ceilTiles(R);const g=14,tw=(W-g*5)/6;td.forEach((t,i)=>{const bx=X+i*(tw+g);x.fillStyle='#fafbfa';x.strokeStyle=PC('--line');x.lineWidth=1.5;rr(x,bx,Y,tw,124,10);x.fill();x.stroke();x.fillStyle=STC[t.cls];x.fillRect(bx,Y+10,6,104);
+    x.fillStyle=PC('--muted');x.font=FN(400,18);x.fillText(fitText(x,t.k,tw-28),bx+18,Y+30);x.fillStyle=PC('--ink');x.font=FM(500,34);x.fillText(t.v,bx+18,Y+72);const vw=x.measureText(t.v).width;x.font=FN(400,17);x.fillStyle=PC('--muted');x.fillText(fitText(x,t.u,tw-vw-30),bx+24+vw,Y+72);
+    x.fillStyle=STC[t.cls];x.font=FN(500,17);x.fillText(fitText(x,t.s,tw-28),bx+18,Y+104);});}});
+  if(view)blocks.push({h:()=>view.height+44,d:(X,Y)=>{head('Widok 3D od strony strychu',X,Y);x.drawImage(view,X,Y+38,W,view.height);x.strokeStyle=PC('--line');x.lineWidth=1.5;x.strokeRect(X,Y+38,W,view.height);}});
+  const pairBlock=(a,b,ta,tb)=>{const pa=plans[a],pb=b?plans[b]:null;if(!pa)return;const hh=Math.max(pa.h,pb?pb.h:0);blocks.push({h:()=>hh+44,d:(X,Y)=>{head(ta,X,Y);x.drawImage(pa.img,X,Y+38,pa.w,pa.h);if(pb){head(tb,X+half+30,Y);x.drawImage(pb.img,X+half+30,Y+38,pb.w,pb.h);}}});};
+  const chkH=cw=>{x.font=FN(400,16.5);return 44+R.checks.reduce((a,ch)=>a+58+(ch.note?wrapLines(x,ch.note,cw-14).length*22:0),0);};
+  const chkD=(X,Y,cw)=>{head('Kontrola',X,Y);let yy=Y+44;
+    for(const ch of R.checks){x.fillStyle=PC('--ink');x.font=FN(500,19);x.fillText(fitText(x,ch.label,cw-110),X,yy+18);x.font=FN(600,16);x.fillStyle=STC[ch.st];const lw=x.measureText(LBL[ch.st]).width;x.fillText(LBL[ch.st],X+cw-lw,yy+18);
+      x.font=FM(500,17.5);x.fillText(ch.val,X,yy+44);yy+=58;
+      if(ch.note){x.font=FN(400,16.5);x.fillStyle=PC('--muted');for(const l of wrapLines(x,ch.note,cw-14)){x.fillText(l,X,yy);yy+=22;}}
+      x.strokeStyle=PC('--line');x.lineWidth=1;x.beginPath();x.moveTo(X,yy-6);x.lineTo(X+cw,yy-6);x.stroke();yy+=4;}};
+  if(keys.length===2){pairBlock('l1','l2','Warstwa 1 (przykręcana do rusztu)','Warstwa 2 (widoczna)');
+    const pg=plans.grid;blocks.push({h:()=>Math.max(pg?pg.h+44:0,chkH(half)),d:(X,Y)=>{if(pg){head('Ruszt i wieszaki',X,Y);x.drawImage(pg.img,X,Y+38,pg.w,pg.h);chkD(X+half+30,Y,half);}else chkD(X,Y,W);}});}
+  else{pairBlock('l1','grid','Płyty','Ruszt i wieszaki');blocks.push({h:()=>chkH(W),d:(X,Y)=>chkD(X,Y,W)});}
+  blocks.push({h:()=>44+R.mats.length*31,d:(X,Y)=>{head('Zestawienie materiałów',X,Y);let yy=Y+44;for(const m of R.mats){x.fillStyle=PC('--ink');x.font=FN(400,18.5);x.fillText(fitText(x,m[0],W*0.55),X,yy+18);x.fillStyle=PC('--muted');x.font=FN(400,16.5);x.fillText(fitText(x,m[3]||'',W*0.25),X+W*0.58,yy+18);
+    x.fillStyle=PC('--ink');x.font=FM(500,18);const v=`${m[1]} ${m[2]}`;const vw=x.measureText(v).width;x.fillText(v,X+W-vw,yy+18);x.strokeStyle=PC('--line');x.lineWidth=1;x.beginPath();x.moveTo(X,yy+27);x.lineTo(X+W,yy+27);x.stroke();yy+=31;}}});
+  const note='Ilości bez zapasu: do zamówienia dolicz 5–10 %. Limity rozstawów i nośności wieszaków są orientacyjne; dla swojego obciążenia sprawdź tabelę w karcie systemu producenta (np. Knauf D112, Rigips 4.30).';
+  blocks.push({h:()=>{x.font=FN(400,16.5);return wrapLines(x,note,W).length*23+6;},d:(X,Y)=>{x.font=FN(400,16.5);x.fillStyle=PC('--muted');wrapLines(x,note,W).forEach((l,i)=>x.fillText(l,X,Y+18+i*23));}});
+  for(const bk of blocks){const h=bk.h();if(y+h>BOT&&y>M+1)newPage();bk.d(M,y);y+=h+30;}
+  pages.forEach((cv,i)=>{const g=cv.getContext('2d');g.fillStyle=PC('--muted');g.font=FN(400,17);g.textAlign='left';g.fillText(`Sufit podwieszany · ${V().name}`,M,PH-M+24);g.textAlign='right';g.fillText(`${date} · strona ${i+1} z ${pages.length}`,PW-M,PH-M+24);g.textAlign='left';});
+  return pages;}
+
+function copyTxt(txt){const ok=()=>toast('Skopiowano zestawienie');const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){toast('Nie udało się skopiować');}ta.remove();};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,fb);else fb();}
+function presetsFor(m){return m==='roof'?presetsRoof():m==='ceil'?presetsCeil():presets();}
 
 applyMode();renderPalette();bindConds();renderVariants();renderCards();init3D();refresh();camPreset('iso',true);
 </script>

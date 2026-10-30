@@ -6,10 +6,11 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 
 ![Widok ogólny kalkulatora](docs/widok-ogolny.png)
 
-## Dwa tryby
+## Trzy tryby
 
 - **Strop pod strychem:** belki stropu (pasy dolne wiązarów, jętki albo belki stropu drewnianego), strefa instalacyjna, ruszt CD (pusty lub wypełniony wełną), paroizolacja, płyty GK.
 - **Poddasze użytkowe:** krokwie, membrana MWK, skos i ścianka kolankowa.
+- **Sufit podwieszany:** ruszt CD (pojedynczy lub podwójny krzyżowy) pod wiązarami, jętkami, belkami albo stropem betonowym, rozkład płyt GK w jednej lub dwóch warstwach.
 
 ## Co liczy
 
@@ -38,6 +39,14 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 **Wersja na telefon:** najważniejsze wyniki na górze, pod nimi widok 3D i warstwy.
 
 <img src="docs/telefon.png" alt="Kalkulator na telefonie" width="320">
+
+**Sufit podwieszany:** model 3D z belkami, wieszakami, profilami głównymi i nośnymi, folią i dwiema warstwami płyt (tu rozsunięte). Kalkulator sprawdza obciążenie wieszaka, rozstawy profili, to, czy krótkie krawędzie płyt wypadają na profilach, i mijanie styków w warstwie oraz między warstwami.
+
+![Sufit podwieszany w 3D](docs/sufit-3d.png)
+
+**Plan płyt** z długością każdego kawałka, profilami nośnymi i stykami drugiej warstwy. Do tego zestawienie materiałów: płyty, profile CD i UD, łączniki, wieszaki, wkręty, folia, taśmy i masa.
+
+![Plan rozkładu płyt](docs/sufit-plan.png)
 
 Pozostałe funkcje:
 
