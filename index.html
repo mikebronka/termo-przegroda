@@ -327,7 +327,7 @@ details.adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-to
   <main class="view only-ceil">
     <div class="panel v3d">
       <div class="toolbar">
-        <div class="seg" id="ccams" role="group" aria-label="Widok sufitu"><button data-cc="above" class="on">Od strychu</button><button data-cc="below">Od pokoju</button><button data-cc="plan">Na wprost</button></div>
+        <div class="seg" id="ccams" role="group" aria-label="Widok sufitu"><button data-cc="above" class="on">Od strychu</button><button data-cc="below">Od pokoju</button><button data-cc="plan">Na wprost</button><button data-cc="detail">Wieszak</button></div>
         <label class="expl" for="cexplode">Rozsuń <input id="cexplode" type="range" min="0" max="25" step="1" value="0"></label>
         <label class="tog"><input type="checkbox" data-cv="l2" checked> Warstwa 2</label>
         <label class="tog"><input type="checkbox" data-cv="l1" checked> Warstwa 1</label>
@@ -1376,7 +1376,7 @@ function renderCeilPlan(){const R=CR;if(!R)return;if(R.layers.length<2&&ui.cplan
   const tl=$('#ptabs [data-p="l1"]');if(tl)tl.textContent=R.layers.length===2?'Warstwa 1':'Płyty';
   const host=$('#cplan');const W=Math.max(300,host.clientWidth);host.innerHTML=ceilPlanSVG(R,ui.cplan,W,false).svg;
   const c=R.c;$('#clegend').innerHTML=ui.cplan==='grid'?
-    `<span><i style="border-color:#4f5a5e;border-top-width:4px"></i>profile główne${R.dbl?` co ${fmt(c.a,0)} cm`:''}</span><span><i style="border-color:#8d989d;border-top-width:3px"></i>profile nośne co ${fmt(R.b,0)} cm</span>${R.wood?`<span><i style="border-color:#c39563;border-top-width:4px"></i>${STRUCT[c.struct].toLowerCase()} co ${fmt(c.sp,0)} cm</span>`:''}<span><i style="border-color:#d9772b;border-top-width:6px;border-radius:3px;width:6px"></i>wieszaki: ${R.hangers.length} szt.</span>`:
+    `<span><i style="border-color:#4f5a5e;border-top-width:4px"></i>profile główne${R.dbl?` co ${fmt(c.a,0)} cm`:''}</span><span><i style="border-color:#8d989d;border-top-width:3px"></i>profile nośne co ${fmt(R.b,0)} cm</span>${R.wood?`<span><i style="border-color:#c39563;border-top-width:4px"></i>${STRUCT[c.struct].toLowerCase()} co ${fmt(c.sp,0)} cm</span>`:''}<span><i style="border-color:#d9772b;border-top-width:6px;border-radius:3px;width:6px"></i>${HANG[c.hanger].n.toLowerCase()}: ${R.hangers.length} szt.</span>`:
     `<span><i style="border-color:#5d625e"></i>krawędzie płyt, liczby w cm</span><span><i style="border-color:var(--accent);border-top-style:dotted"></i>profile nośne</span>${R.layers.length===2?`<span><i style="border-color:var(--dew);border-top-style:dashed"></i>styki drugiej warstwy</span>`:''}<span><i style="border-color:var(--bad);border-top-width:4px"></i>styk do poprawy</span>`;}
 document.querySelectorAll('#ptabs button').forEach(b=>b.addEventListener('click',()=>{ui.cplan=b.dataset.p;renderCeilPlan();}));
 new ResizeObserver(()=>{if(S.mode==='ceil'&&CR)renderCeilPlan();}).observe($('#cplan'));
@@ -1409,7 +1409,7 @@ function makeViewer(stage){
     const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#f2f4f2';x.fillRect(0,0,w,h);x.drawImage(v.r.domElement,0,0,w,h);
     v.r.setPixelRatio(pr);v.r.setSize(ow/pr,oh/pr,false);v.dirty=true;return c;};
   return v;}
-function ceilCamGoal(k){const c=CR?CR.c:CDEF;const S0=Math.max(c.L,c.W);const h=(CR?CR.t*CR.layers.length:2.5)+12+(c.gap||10);
+function ceilCamGoal(k){if(k==='detail'&&CV&&CV.det){const d=CV.det;const hh=d.y1-d.y0;return {theta:(d.ax?Math.PI/2:0)-0.55,phi:Math.PI/2-0.06,radius:Math.max(34,hh*2.5+14),target:new THREE.Vector3(d.ox+d.x,(d.y0+d.y1)/2,d.oz+d.z)};}const c=CR?CR.c:CDEF;const S0=Math.max(c.L,c.W);const h=(CR?CR.t*CR.layers.length:2.5)+12+(c.gap||10);
   const P={below:{theta:-0.62,phi:Math.PI-0.95,radius:S0*2.05},above:{theta:-0.62,phi:0.95,radius:S0*2.05},plan:{theta:0.0001,phi:Math.PI-0.02,radius:S0*1.7}}[k]||{theta:-0.62,phi:0.95,radius:S0*2.05};
   const asp=CV&&CV.cam?CV.cam.aspect:1.6;if(asp<1.25)P.radius*=Math.pow(1.25/asp,0.9);
   return {...P,target:new THREE.Vector3(0,h/2,0)};}
@@ -1438,7 +1438,39 @@ function buildCeil3D(){
     for(const u of R.bear){const [x0,x1,z0,z1]=uv(u-3,u+3,0,R.V);add(x0,x1,yb,yb+2.7,z0,z1,st,0.3);}
     for(const v of R.mains){const [x0,x1,z0,z1]=uv(0,R.U,v-3,v+3);add(x0,x1,ym,ym+2.7,z0,z1,stM,0.3);}
     const ud=cm('#c4cbce',{metal:0.4,rough:0.5});add(0,c.L,yb,yb+2.8,0,3,ud,0.25);add(0,c.L,yb,yb+2.8,c.W-3,c.W,ud,0.25);add(0,3,yb,yb+2.8,3,c.W-3,ud,0.25);add(c.L-3,c.L,yb,yb+2.8,3,c.W-3,ud,0.25);
-    const hm=cm('#d9772b',{metal:0.3,rough:0.5});for(const h of R.hangers){const p=R.P(h.u,h.v);add(p.x-0.8,p.x+0.8,gTop,ySt,p.y-1.4,p.y+1.4,hm,0);}}
+    const zinc=cm('#d3d9dc',{metal:0.55,rough:0.35}),zinc2=cm('#a2abaf',{metal:0.55,rough:0.4}),dark=cm('#4f5559',{metal:0.4,rough:0.5});
+    const cyl=(x,z,y0,y1,r,m)=>{if(y1-y0<0.05)return;const g=new THREE.CylinderGeometry(r,r,y1-y0,12);const me=new THREE.Mesh(g,m);me.position.set(ox+x,(y0+y1)/2,oz+z);root.add(me);};
+    const ring=(x,z,y,r,alongX,m)=>{const g=new THREE.TorusGeometry(r,r*0.24,8,18);const me=new THREE.Mesh(g,m);me.position.set(ox+x,y,oz+z);if(!alongX)me.rotation.y=Math.PI/2;root.add(me);};
+    const pAlongX=R.dbl===R.vAlongY;const py0=R.dbl?ym:yb,py1=py0+2.7;const H=ySt-py1;
+    let best=null;
+    for(const h of R.hangers){const p=R.P(h.u,h.v);const X0=p.x,Z0=p.y;
+      const d=Math.hypot(X0-c.L/2,Z0-c.W/2);if(!best||d<best.d)best={d,x:X0,z:Z0};
+      const B=(a0,a1,y0,y1,n0,n1,m,ed=0.5)=>pAlongX?add(X0+a0,X0+a1,y0,y1,Z0+n0,Z0+n1,m,ed):add(X0+n0,X0+n1,y0,y1,Z0+a0,Z0+a1,m,ed);
+      const legs=(y0,y1,m)=>{B(-1.5,1.5,y0,y1,3.05,3.25,m);B(-1.5,1.5,y0,y1,-3.25,-3.05,m);};
+      const screws=()=>{for(const sg of [-1,1])B(-0.4,0.4,py0+0.95,py0+1.75,sg>0?3.25:-3.55,sg>0?3.55:-3.25,dark,0);};
+      const fix=()=>{if(!R.wood){cyl(X0,Z0,ySt,ySt+6,0.4,dark);cyl(X0,Z0,ySt-0.55,ySt-0.25,1.05,zinc2);}};
+      const stirrup=()=>{B(-1.5,1.5,py1+0.7,py1+0.95,-3.25,3.25,zinc);legs(py0+0.4,py1+0.95,zinc);screws();};
+      if(c.hanger==='es'){
+        B(-1.5,1.5,ySt-0.25,ySt,-3.25,3.25,zinc);legs(py0+0.4,ySt,zinc);screws();
+        for(const sg of [-1,1])for(let yy=py1+2;yy<ySt-1.5;yy+=2.2)B(-0.35,0.35,yy,yy+0.9,sg>0?3.24:-3.27,sg>0?3.27:-3.24,dark,0);
+        fix();
+      } else if(c.hanger==='non'){
+        const yA=py1+Math.max(1.5,H*0.35),yB=py1+Math.max(2.5,H*0.72);
+        B(-2,2,ySt-0.25,ySt,-2.2,2.2,zinc);B(-1.25,1.25,yA,ySt-0.25,-0.1,0.1,zinc);
+        B(-1.25,1.25,py1+0.95,yB,0.12,0.34,zinc2);
+        for(let yy=yA+0.6;yy<yB-0.4;yy+=1.6)B(-0.3,0.3,yy-0.3,yy+0.3,-0.45,0.65,dark,0);
+        for(let yy=py1+1.6;yy<ySt-0.8;yy+=1.6)B(-0.25,0.25,yy-0.25,yy+0.25,(yy<yA?0.33:-0.11),(yy<yA?0.36:-0.09),dark,0);
+        stirrup();fix();
+      } else {
+        B(-1.5,1.5,ySt-0.3,ySt,-1.5,1.5,zinc);if(R.wood)ring(X0,Z0,ySt-1.25,0.8,pAlongX,zinc);
+        const ySp0=py1+Math.min(1.3,H*0.12),ySp1=Math.max(ySp0+1.2,Math.min(ySt-2.4,ySp0+Math.min(5,H*0.45)));
+        cyl(X0,Z0,ySp0+0.6,ySt-(R.wood?2.05:0.3),0.26,zinc2);
+        B(-1.3,1.3,ySp0+0.6,ySp1,-0.5,-0.24,zinc);B(-1.3,1.3,ySp0+0.6,ySp1,0.24,0.5,zinc);
+        B(-1.45,1.45,ySp1-0.7,ySp1-0.35,-0.55,0.55,dark,0);
+        B(-0.6,0.6,py1+0.95,ySp0+0.6,-0.5,0.5,zinc);
+        stirrup();fix();
+      }}
+    if(best)CV.det={x:best.x,z:best.z,y0:py0,y1:ySt+(R.wood?c.bh*0.4:3),ox,oz,ax:(R.dbl?!R.vAlongY:R.vAlongY),wood:R.wood};}
   if(vis.struct){if(R.wood){const wm=cm('#c9975f',{rough:0.75});for(const q of R.beams){const [x0,x1,z0,z1]=R.dbl?uv(q-c.bw/2,q+c.bw/2,0,R.V):uv(0,R.U,q-c.bw/2,q+c.bw/2);add(x0,x1,ySt,ySt+c.bh,z0,z1,wm,0.35);}}
     else add(0,c.L,ySt,ySt+12,0,c.W,cm('#b9bdb9',{op:0.35}),0.25);}
   const ol=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(c.L,0.01,c.W)),new THREE.LineBasicMaterial({color:0x56605b}));ol.position.set(0,-0.3,0);root.add(ol);

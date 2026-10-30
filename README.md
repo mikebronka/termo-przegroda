@@ -44,6 +44,10 @@ Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem
 
 ![Sufit podwieszany w 3D](docs/sufit-3d.png)
 
+**Wieszaki w zbliżeniu** (przycisk „Wieszak”): bezpośredni ES pod belką, noniuszowy, obrotowy z prętem i ES kotwiony w stropie betonowym.
+
+![Typy wieszaków](docs/wieszaki.png)
+
 **Plan płyt** z długością każdego kawałka, profilami nośnymi i stykami drugiej warstwy. Do tego zestawienie materiałów: płyty, profile CD i UD, łączniki, wieszaki, wkręty, folia, taśmy i masa.
 
 ![Plan rozkładu płyt](docs/sufit-plan.png)
