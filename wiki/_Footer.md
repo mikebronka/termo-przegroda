@@ -1,0 +1,1 @@
+[Kalkulator](https://mikebronka.github.io/termo-przegroda/) · [Repozytorium](https://github.com/mikebronka/termo-przegroda) · Autor: Mike Bronka, [mikebronka.com](https://www.mikebronka.com) · Wyniki są pomocnicze, decyzje wykonawcze skonsultuj z projektantem.
