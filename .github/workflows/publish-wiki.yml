@@ -1,0 +1,46 @@
+name: Publikacja Wiki
+
+# Kopiuje folder wiki/ do zakładki Wiki repozytorium po każdej zmianie.
+# Bez zewnętrznych akcji: tylko actions/checkout i git z tokenem workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '.github/workflows/publish-wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: true
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skopiuj strony do Wiki
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo
+          find wiki-repo -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r wiki/. wiki-repo/
+          cd wiki-repo
+          mv README.md Home.md
+          # Linki do plików .md zamieniamy na linki stron Wiki
+          for f in *.md; do
+            sed -i -E 's/\]\(README\.md\)/](Home)/g; s/\]\(([^):\/]+)\.md\)/](\1)/g' "$f"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Bez zmian w Wiki"; exit 0; fi
+          git commit -m "Aktualizacja Wiki z ${GITHUB_SHA::7}"
+          git push

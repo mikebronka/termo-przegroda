@@ -2,7 +2,7 @@
 
 Kalkulator przegrody dla domu jednorodzinnego: stropu pod nieogrzewanym strychem albo skosu poddasza użytkowego. Działa w przeglądarce, bez instalacji i bez serwera.
 
-**[Otwórz kalkulator](https://mikebronka.github.io/termo-przegroda/)** · **[Instrukcja obsługi](wiki/README.md)**
+**[Otwórz kalkulator](https://mikebronka.github.io/termo-przegroda/)** · **[Instrukcja obsługi (Wiki)](https://github.com/mikebronka/termo-przegroda/wiki)**
 
 ![Widok ogólny kalkulatora](docs/widok-ogolny.png)
 
@@ -68,4 +68,4 @@ Wystarczy otworzyć `index.html` w przeglądarce. Wersja online działa przez Gi
 
 ## Dokumentacja
 
-Pełna instrukcja obsługi ze zrzutami ekranu, opisem wszystkich trybów, wzorami i biblioteką materiałów jest w folderze **[wiki](wiki/README.md)**.
+Pełna instrukcja obsługi ze zrzutami ekranu, opisem wszystkich trybów, wzorami i biblioteką materiałów jest w **[Wiki](https://github.com/mikebronka/termo-przegroda/wiki)**. Źródło stron leży w folderze [`wiki/`](wiki/README.md) i po każdej zmianie publikuje się samo do zakładki Wiki.
